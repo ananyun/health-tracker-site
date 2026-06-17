@@ -765,7 +765,7 @@ function saveSymptom() {
 }
 
 // ── WHEEL TIME PICKER (scroll to pick, no typing) ──────────────────
-const WHEEL_STEP = 15;
+const WHEEL_STEP = 30;
 const WHEEL_OPTIONS = (()=>{ const o=[]; for(let m=0;m<24*60;m+=WHEEL_STEP){ o.push(String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')); } return o; })();
 const WHEEL_ITEM_H = 36;
 function nearestWheelValue(time) {
