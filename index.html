@@ -46,6 +46,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-se
 .quick-card .qc-icon { font-size: 26px; }
 .quick-card .qc-label { font-size: 13px; font-weight: 500; }
 .quick-card .qc-count { font-size: 11px; color: var(--text-3); }
+.qc-tap { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; width: 100%; }
+.qc-mini-row { display: flex; gap: 4px; width: 100%; margin-top: 6px; }
+.qc-mini-btn { flex: 1; padding: 5px 2px; font-size: 10px; border-radius: 6px; border: 1px solid var(--border-md); background: var(--surface); cursor: pointer; color: var(--text-2); }
+.qc-mini-btn.normal:active, .qc-mini-btn.normal:hover { background: var(--teal-bg); border-color: var(--teal); color: var(--teal); }
+.qc-mini-btn.mid:active, .qc-mini-btn.mid:hover { background: var(--amber-bg); border-color: var(--amber); color: var(--amber); }
+.qc-mini-btn.loose:active, .qc-mini-btn.loose:hover { background: var(--coral-bg); border-color: var(--coral); color: var(--coral); }
+
+/* WHEEL PICKER */
+.wheel-outer { position: relative; height: 144px; }
+.wheel-picker { height: 144px; overflow-y: scroll; scroll-snap-type: y mandatory; border: 1px solid var(--border-md); border-radius: var(--r-sm); background: var(--bg); -webkit-overflow-scrolling: touch; }
+.wheel-track { padding: 54px 0; }
+.wheel-item { height: 36px; display: flex; align-items: center; justify-content: center; font-size: 15px; scroll-snap-align: center; color: var(--text-3); }
+.wheel-item.selected { color: var(--text); font-weight: 600; font-size: 17px; }
+.wheel-indicator { position: absolute; top: 50%; left: 0; right: 0; height: 36px; margin-top: -18px; border-top: 1.5px solid var(--purple); border-bottom: 1.5px solid var(--purple); pointer-events: none; background: rgba(127,119,221,.06); }
 
 .feed-row { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 11px 14px; display: flex; align-items: center; gap: 12px; margin-bottom: 7px; }
 .feed-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
@@ -60,11 +74,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-se
 .feed-del { background: none; border: none; cursor: pointer; color: var(--text-3); font-size: 17px; padding: 2px 4px; flex-shrink: 0; }
 .feed-del:hover { color: var(--coral); }
 .empty-msg { font-size: 14px; color: var(--text-3); text-align: center; padding: 20px 0; }
-
-/* SEVERITY DOTS */
-.sev-dots { display: inline-flex; gap: 2px; vertical-align: middle; }
-.sev-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border-md); }
-.sev-dot.on { background: var(--coral); }
 
 /* CALENDAR */
 .cal-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
@@ -144,12 +153,19 @@ textarea.fi { resize: vertical; min-height: 68px; }
   <button class="quickcap-btn" onclick="openQuickCapture()">🎙️ 快速记录 — 说一句话，自动识别类型 / 时间 / 细节</button>
 
   <div class="quick-grid">
-    <div class="quick-card" onclick="openBowelForm()">
-      <div class="qc-icon">🚽</div>
-      <div class="qc-label">排便</div>
-      <div class="qc-count" id="cnt-bowel">今日 0 次</div>
+    <div class="quick-card">
+      <div class="qc-tap" onclick="quickCheckBowel('正常')">
+        <div class="qc-icon">🚽</div>
+        <div class="qc-label">排便</div>
+        <div class="qc-count" id="cnt-bowel">今日 0 次</div>
+      </div>
+      <div class="qc-mini-row">
+        <button class="qc-mini-btn normal" onclick="quickCheckBowel('正常')">正常</button>
+        <button class="qc-mini-btn mid" onclick="quickCheckBowel('一般')">一般</button>
+        <button class="qc-mini-btn loose" onclick="quickCheckBowel('蹿稀')">蹿稀</button>
+      </div>
     </div>
-    <div class="quick-card" onclick="openMealForm()">
+    <div class="quick-card" onclick="quickCheckMeal()">
       <div class="qc-icon">🍽️</div>
       <div class="qc-label">吃饭</div>
       <div class="qc-count" id="cnt-meal">今日 0 次</div>
@@ -225,17 +241,12 @@ textarea.fi { resize: vertical; min-height: 68px; }
       <div class="fg"><label class="flbl">时间</label><input class="fi" id="bw-time" type="time"></div>
     </div>
     <div class="fg">
-      <label class="flbl">性状（布里斯托分类，可选）</label>
-      <select class="fi" id="bw-type">
-        <option value="">不记录</option>
-        <option value="1">1型 - 硬球状（便秘）</option>
-        <option value="2">2型 - 块状偏硬</option>
-        <option value="3">3型 - 表面有裂纹</option>
-        <option value="4">4型 - 光滑软便（正常）</option>
-        <option value="5">5型 - 软块边缘清楚</option>
-        <option value="6">6型 - 糊状边缘不清</option>
-        <option value="7">7型 - 完全水状（腹泻）</option>
-      </select>
+      <div class="flbl">情况</div>
+      <div class="seg" id="seg-consistency">
+        <div class="so" data-v="正常">😊 正常</div>
+        <div class="so" data-v="一般">😐 一般</div>
+        <div class="so" data-v="蹿稀">💦 蹿稀</div>
+      </div>
     </div>
     <div class="fg"><label class="flbl">备注</label><textarea class="fi" id="bw-notes" placeholder="可选..." style="min-height:50px"></textarea></div>
     <div class="mfoot">
@@ -276,22 +287,11 @@ textarea.fi { resize: vertical; min-height: 68px; }
 <div class="ov" id="ov-symptom">
   <div class="modal" style="max-width:400px">
     <div class="m-ttl">🤒 记录不舒服</div>
+    <div class="fg"><label class="flbl">怎么不舒服</label><textarea class="fi" id="sy-symptom" placeholder="简单写一下，如：头疼、肚子疼、有点恶心..." style="min-height:60px" autofocus></textarea></div>
     <div class="row2">
-      <div class="fg"><label class="flbl">日期</label><input class="fi" id="sy-date" type="date"></div>
-      <div class="fg"><label class="flbl">时间</label><input class="fi" id="sy-time" type="time"></div>
+      <div class="fg" style="margin-bottom:0"><label class="flbl">日期</label><input class="fi" id="sy-date" type="date"></div>
+      <div class="fg" style="margin-bottom:0"><label class="flbl">时间</label><input class="fi" id="sy-time" type="time"></div>
     </div>
-    <div class="fg"><label class="flbl">症状</label><input class="fi" id="sy-symptom" placeholder="如：头疼、肚子疼、恶心..."></div>
-    <div class="fg">
-      <div class="flbl">严重程度</div>
-      <div class="seg" id="seg-severity">
-        <div class="so" data-v="1">1 轻微</div>
-        <div class="so" data-v="2">2</div>
-        <div class="so" data-v="3">3 中等</div>
-        <div class="so" data-v="4">4</div>
-        <div class="so" data-v="5">5 严重</div>
-      </div>
-    </div>
-    <div class="fg"><label class="flbl">备注</label><textarea class="fi" id="sy-notes" placeholder="可选..." style="min-height:50px"></textarea></div>
     <div class="mfoot">
       <button class="mbtn-del" id="sy-del" onclick="deleteLog('symptom')" style="display:none">删除</button>
       <button class="mbtn" onclick="closeOv('ov-symptom')">取消</button>
@@ -304,14 +304,18 @@ textarea.fi { resize: vertical; min-height: 68px; }
 <div class="ov" id="ov-sleep">
   <div class="modal" style="max-width:420px">
     <div class="m-ttl">😴 记录睡眠</div>
-    <p class="m-sub">记录昨晚的睡眠情况（跨夜：入睡时间在前一天晚上，起床时间在今天）</p>
+    <p class="m-sub">记录昨晚的睡眠情况，滚动选时间（跨夜：入睡时间在前一天晚上，起床时间在今天）</p>
     <div class="row2">
-      <div class="fg"><label class="flbl">入睡日期</label><input class="fi" id="sl-beddate" type="date"></div>
-      <div class="fg"><label class="flbl">入睡时间</label><input class="fi" id="sl-bedtime" type="time"></div>
-    </div>
-    <div class="row2">
-      <div class="fg"><label class="flbl">起床日期</label><input class="fi" id="sl-wakedate" type="date"></div>
-      <div class="fg"><label class="flbl">起床时间</label><input class="fi" id="sl-waketime" type="time"></div>
+      <div class="fg">
+        <label class="flbl">入睡日期</label><input class="fi" id="sl-beddate" type="date">
+        <label class="flbl" style="margin-top:8px">入睡时间</label>
+        <div class="wheel-outer"><div class="wheel-picker" id="wheel-bedtime"><div class="wheel-track" id="wheel-bedtime-track"></div></div><div class="wheel-indicator"></div></div>
+      </div>
+      <div class="fg">
+        <label class="flbl">起床日期</label><input class="fi" id="sl-wakedate" type="date">
+        <label class="flbl" style="margin-top:8px">起床时间</label>
+        <div class="wheel-outer"><div class="wheel-picker" id="wheel-waketime"><div class="wheel-track" id="wheel-waketime-track"></div></div><div class="wheel-indicator"></div></div>
+      </div>
     </div>
     <div class="fg">
       <div class="flbl">睡眠质量</div>
@@ -648,25 +652,19 @@ function renderToday() {
 function feedRowH(l) {
   const meta = TYPE_META[l.type];
   let title='', sub='', time='';
-  if (l.type==='bowel') { title='排便'; sub = l.bristolType ? `布里斯托 ${l.bristolType}型` + (l.notes?' · '+l.notes:'') : (l.notes||''); time=l.time; }
+  if (l.type==='bowel') { title = '排便 · '+(l.consistency||'正常'); sub = l.notes||''; time=l.time; }
   else if (l.type==='meal') { title = l.mealType||'吃饭'; sub = l.food||''; time=l.time; }
-  else if (l.type==='symptom') { title = l.symptom||'不舒服'; sub = sevDotsH(l.severity) + (l.notes?' '+escHtml(l.notes):''); time=l.time; }
+  else if (l.type==='symptom') { title = l.symptom||'不舒服'; sub = l.notes||''; time=l.time; }
   else if (l.type==='sleep') { title = '睡眠 '+(l.durationMin?(l.durationMin/60).toFixed(1)+'小时':''); sub = `${l.bedTime}→${l.wakeTime} · ${l.quality||''}` + (l.notes?' · '+l.notes:''); time=l.wakeTime; }
   return `<div class="feed-row">
     <div class="feed-icon ${l.type}">${meta.icon}</div>
     <div class="feed-info">
       <div class="feed-title">${escHtml(title)}</div>
-      <div class="feed-sub">${l.type==='symptom'?sub:escHtml(sub)}</div>
+      <div class="feed-sub">${escHtml(sub)}</div>
     </div>
     <div class="feed-time">${time||''}</div>
     <button class="feed-del" onclick="quickDelete('${l.id}')">×</button>
   </div>`;
-}
-function sevDotsH(n) {
-  n = n||0;
-  let h = '<span class="sev-dots">';
-  for (let i=1;i<=5;i++) h += `<span class="sev-dot${i<=n?' on':''}"></span>`;
-  return h + '</span>';
 }
 function quickDelete(id) {
   if (!confirm('删除这条记录？')) return;
@@ -675,22 +673,28 @@ function quickDelete(id) {
 }
 
 // ── BOWEL ──────────────────────────────────────────────────
-let editingBowelId = null;
+let editingBowelId = null, selConsistency = '正常';
+function quickCheckBowel(consistency) {
+  db.logs.push({ id:uid(), type:'bowel', date:todayStr(), time:nowTime(), consistency, notes:'' });
+  save(); refreshCurrentPage();
+}
 function openBowelForm(id, prefillDate) {
   editingBowelId = id || null;
   document.getElementById('bw-del').style.display = id ? 'inline-block' : 'none';
   if (id) {
     const l = db.logs.find(x=>x.id===id);
     document.getElementById('bw-date').value = l.date; document.getElementById('bw-time').value = l.time;
-    document.getElementById('bw-type').value = l.bristolType || ''; document.getElementById('bw-notes').value = l.notes||'';
+    selConsistency = l.consistency || '正常'; document.getElementById('bw-notes').value = l.notes||'';
   } else {
     document.getElementById('bw-date').value = prefillDate || todayStr(); document.getElementById('bw-time').value = nowTime();
-    document.getElementById('bw-type').value = ''; document.getElementById('bw-notes').value = '';
+    selConsistency = '正常'; document.getElementById('bw-notes').value = '';
   }
+  refreshSeg('seg-consistency', selConsistency);
   openOv('ov-bowel');
 }
+document.getElementById('seg-consistency').addEventListener('click', e=>{ const o=e.target.closest('.so'); if(!o) return; selConsistency=o.dataset.v; refreshSeg('seg-consistency',selConsistency); });
 function saveBowel() {
-  const data = { type:'bowel', date:document.getElementById('bw-date').value, time:document.getElementById('bw-time').value, bristolType:document.getElementById('bw-type').value, notes:document.getElementById('bw-notes').value.trim() };
+  const data = { type:'bowel', date:document.getElementById('bw-date').value, time:document.getElementById('bw-time').value, consistency:selConsistency, notes:document.getElementById('bw-notes').value.trim() };
   if (editingBowelId) { const l = db.logs.find(x=>x.id===editingBowelId); Object.assign(l, data); }
   else db.logs.push({ id:uid(), ...data });
   save(); closeOv('ov-bowel'); refreshCurrentPage();
@@ -705,6 +709,12 @@ function deleteLog(kind) {
 
 // ── MEAL ──────────────────────────────────────────────────
 let editingMealId = null, selMealType = '早餐';
+function quickCheckMeal() {
+  const h = new Date().getHours();
+  const mealType = h<10?'早餐':h<15?'午餐':h<21?'晚餐':'加餐';
+  db.logs.push({ id:uid(), type:'meal', date:todayStr(), time:nowTime(), mealType, food:'' });
+  save(); refreshCurrentPage();
+}
 function openMealForm(id, prefillDate) {
   editingMealId = id || null;
   document.getElementById('ml-del').style.display = id ? 'inline-block' : 'none';
@@ -730,30 +740,56 @@ function saveMeal() {
 }
 
 // ── SYMPTOM ──────────────────────────────────────────────────
-let editingSymptomId = null, selSeverity = 3;
+let editingSymptomId = null;
 function openSymptomForm(id, prefillDate) {
   editingSymptomId = id || null;
   document.getElementById('sy-del').style.display = id ? 'inline-block' : 'none';
   if (id) {
     const l = db.logs.find(x=>x.id===id);
     document.getElementById('sy-date').value = l.date; document.getElementById('sy-time').value = l.time;
-    document.getElementById('sy-symptom').value = l.symptom||''; selSeverity = l.severity||3; document.getElementById('sy-notes').value = l.notes||'';
+    document.getElementById('sy-symptom').value = l.symptom||'';
   } else {
     document.getElementById('sy-date').value = prefillDate || todayStr(); document.getElementById('sy-time').value = nowTime();
-    document.getElementById('sy-symptom').value = ''; selSeverity = 3; document.getElementById('sy-notes').value = '';
+    document.getElementById('sy-symptom').value = '';
   }
-  refreshSeg('seg-severity', String(selSeverity));
   openOv('ov-symptom');
+  setTimeout(()=>document.getElementById('sy-symptom').focus(), 150);
 }
-document.getElementById('seg-severity').addEventListener('click', e=>{ const o=e.target.closest('.so'); if(!o) return; selSeverity=parseInt(o.dataset.v); refreshSeg('seg-severity',String(selSeverity)); });
 function saveSymptom() {
   const symptom = document.getElementById('sy-symptom').value.trim();
   if (!symptom) { alert('请输入症状'); return; }
-  const data = { type:'symptom', date:document.getElementById('sy-date').value, time:document.getElementById('sy-time').value, symptom, severity:selSeverity, notes:document.getElementById('sy-notes').value.trim() };
+  const data = { type:'symptom', date:document.getElementById('sy-date').value, time:document.getElementById('sy-time').value, symptom, notes:'' };
   if (editingSymptomId) { const l = db.logs.find(x=>x.id===editingSymptomId); Object.assign(l, data); }
   else db.logs.push({ id:uid(), ...data });
   save(); closeOv('ov-symptom'); refreshCurrentPage();
 }
+
+// ── WHEEL TIME PICKER (scroll to pick, no typing) ──────────────────
+const WHEEL_STEP = 15;
+const WHEEL_OPTIONS = (()=>{ const o=[]; for(let m=0;m<24*60;m+=WHEEL_STEP){ o.push(String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')); } return o; })();
+const WHEEL_ITEM_H = 36;
+function nearestWheelValue(time) {
+  const [h,m] = (time||'00:00').split(':').map(Number);
+  const total = h*60+m;
+  const rounded = Math.round(total/WHEEL_STEP)*WHEEL_STEP % (24*60);
+  return String(Math.floor(rounded/60)).padStart(2,'0')+':'+String(rounded%60).padStart(2,'0');
+}
+function renderWheel(id, value) {
+  const idx = Math.max(0, WHEEL_OPTIONS.indexOf(nearestWheelValue(value)));
+  const track = document.getElementById(id+'-track');
+  track.innerHTML = WHEEL_OPTIONS.map(t=>`<div class="wheel-item">${t}</div>`).join('');
+  const container = document.getElementById(id);
+  container.dataset.value = WHEEL_OPTIONS[idx];
+  requestAnimationFrame(()=>{ container.scrollTop = idx*WHEEL_ITEM_H; updateWheelSelection(id); });
+  container.onscroll = () => { clearTimeout(container._wt); container._wt = setTimeout(()=>updateWheelSelection(id), 100); };
+}
+function updateWheelSelection(id) {
+  const container = document.getElementById(id);
+  const idx = Math.max(0, Math.min(WHEEL_OPTIONS.length-1, Math.round(container.scrollTop/WHEEL_ITEM_H)));
+  container.querySelectorAll('.wheel-item').forEach((el,i)=>el.classList.toggle('selected', i===idx));
+  container.dataset.value = WHEEL_OPTIONS[idx];
+}
+function getWheelValue(id) { return document.getElementById(id).dataset.value || '00:00'; }
 
 // ── SLEEP ──────────────────────────────────────────────────
 let editingSleepId = null, selQuality = '好';
@@ -767,25 +803,29 @@ function computeSleepDuration(bedDate, bedTime, wakeDate, wakeTime) {
 function openSleepForm(id, prefillWakeDate) {
   editingSleepId = id || null;
   document.getElementById('sl-del').style.display = id ? 'inline-block' : 'none';
+  let bedTime='23:00', wakeTime='07:00';
   if (id) {
     const l = db.logs.find(x=>x.id===id);
-    document.getElementById('sl-beddate').value = l.bedDate; document.getElementById('sl-bedtime').value = l.bedTime;
-    document.getElementById('sl-wakedate').value = l.wakeDate; document.getElementById('sl-waketime').value = l.wakeTime;
+    document.getElementById('sl-beddate').value = l.bedDate;
+    document.getElementById('sl-wakedate').value = l.wakeDate;
+    bedTime = l.bedTime; wakeTime = l.wakeTime;
     selQuality = l.quality||'好'; document.getElementById('sl-notes').value = l.notes||'';
   } else {
     const wakeDate = prefillWakeDate || todayStr();
     const y = new Date(wakeDate+'T00:00:00'); y.setDate(y.getDate()-1);
-    document.getElementById('sl-beddate').value = y.toISOString().slice(0,10); document.getElementById('sl-bedtime').value = '23:00';
-    document.getElementById('sl-wakedate').value = wakeDate; document.getElementById('sl-waketime').value = '07:00';
+    document.getElementById('sl-beddate').value = y.toISOString().slice(0,10);
+    document.getElementById('sl-wakedate').value = wakeDate;
     selQuality = '好'; document.getElementById('sl-notes').value = '';
   }
   refreshSeg('seg-quality', selQuality);
   openOv('ov-sleep');
+  renderWheel('wheel-bedtime', bedTime);
+  renderWheel('wheel-waketime', wakeTime);
 }
 document.getElementById('seg-quality').addEventListener('click', e=>{ const o=e.target.closest('.so'); if(!o) return; selQuality=o.dataset.v; refreshSeg('seg-quality',selQuality); });
 function saveSleep() {
-  const bedDate=document.getElementById('sl-beddate').value, bedTime=document.getElementById('sl-bedtime').value;
-  const wakeDate=document.getElementById('sl-wakedate').value, wakeTime=document.getElementById('sl-waketime').value;
+  const bedDate=document.getElementById('sl-beddate').value, bedTime=getWheelValue('wheel-bedtime');
+  const wakeDate=document.getElementById('sl-wakedate').value, wakeTime=getWheelValue('wheel-waketime');
   const durationMin = computeSleepDuration(bedDate,bedTime,wakeDate,wakeTime);
   const data = { type:'sleep', date:wakeDate, bedDate, bedTime, wakeDate, wakeTime, durationMin, quality:selQuality, notes:document.getElementById('sl-notes').value.trim() };
   if (editingSleepId) { const l = db.logs.find(x=>x.id===editingSleepId); Object.assign(l, data); }
@@ -804,7 +844,7 @@ function dayCellContent(cat, dateStr) {
   const logs = logsForDate(cat, dateStr);
   if (!logs.length) return null;
   if (cat==='sleep') { const h = (logs[0].durationMin/60).toFixed(1); return `${h}h`; }
-  if (cat==='symptom') { const maxSev = Math.max(...logs.map(l=>l.severity||0)); return logs.length>1?`×${logs.length}`:''; }
+  if (cat==='symptom') { return logs.length>1?`×${logs.length}`:'!'; }
   return logs.length>1 ? `×${logs.length}` : '✓';
 }
 function renderCalendarPage() {
@@ -837,7 +877,7 @@ function calClickDay(dateStr) {
   else {
     list.innerHTML = logs.map(l => {
       let title='', sub='';
-      if (l.type==='bowel') { title = l.time; sub = (l.bristolType?'布里斯托'+l.bristolType+'型 ':'') + (l.notes||''); }
+      if (l.type==='bowel') { title = `${l.time} ${l.consistency||'正常'}`; sub = l.notes||''; }
       else if (l.type==='meal') { title = `${l.time} ${l.mealType||''}`; sub = l.food||''; }
       else if (l.type==='symptom') { title = `${l.time} ${l.symptom}`; sub = (l.notes||''); }
       else if (l.type==='sleep') { title = `${l.bedTime}→${l.wakeTime}`; sub = `${(l.durationMin/60).toFixed(1)}小时 · ${l.quality||''} ${l.notes||''}`; }
@@ -921,7 +961,7 @@ function renderStats() {
   document.getElementById('list-symptom').innerHTML = symptomLogs.length ? symptomLogs.map(l=>`
     <div class="feed-row">
       <div class="feed-icon symptom">🤒</div>
-      <div class="feed-info"><div class="feed-title">${escHtml(l.symptom)}</div><div class="feed-sub">${sevDotsH(l.severity)} ${l.notes?escHtml(l.notes):''}</div></div>
+      <div class="feed-info"><div class="feed-title">${escHtml(l.symptom)}</div><div class="feed-sub">${l.notes?escHtml(l.notes):''}</div></div>
       <div class="feed-time">${l.date.slice(5)} ${l.time||''}</div>
     </div>`).join('') : '<div class="empty-msg">这段时间没有不舒服记录</div>';
 }
@@ -958,11 +998,9 @@ function smartParseHealth(text) {
   }
   if (type==='symptom') {
     result.symptom = text.trim();
-    result.severity = /严重|很疼|受不了/.test(text) ? 4 : /轻微|有点/.test(text) ? 2 : 3;
   }
   if (type==='bowel') {
-    const b = text.match(/水状|腹泻/) ? 7 : text.match(/稀|软/) ? 6 : text.match(/硬|便秘/) ? 1 : 0;
-    result.bristolType = b || '';
+    result.consistency = /水状|腹泻|蹿稀|拉肚子/.test(text) ? '蹿稀' : /稀|软|一般/.test(text) ? '一般' : '正常';
   }
   if (type==='sleep') {
     const times = [...text.matchAll(/(\d{1,2})[点:：](\d{0,2})/g)];
@@ -999,13 +1037,13 @@ function qcRenderExtraFields(parsed) {
       </div></div>`;
     refreshSeg('qc-mealtype-seg', parsed.mealType||'');
     document.getElementById('qc-mealtype-seg').addEventListener('click', e=>{ const o=e.target.closest('.so'); if(!o) return; refreshSeg('qc-mealtype-seg',o.dataset.v); });
-  } else if (qcType==='symptom') {
-    el.innerHTML = `<div class="fg" style="margin-bottom:0"><label class="flbl">严重程度</label>
-      <div class="seg" id="qc-sev-seg">
-        <div class="so" data-v="1">1</div><div class="so" data-v="2">2</div><div class="so" data-v="3">3</div><div class="so" data-v="4">4</div><div class="so" data-v="5">5</div>
+  } else if (qcType==='bowel') {
+    el.innerHTML = `<div class="fg" style="margin-bottom:0"><label class="flbl">情况</label>
+      <div class="seg" id="qc-consistency-seg">
+        <div class="so" data-v="正常">正常</div><div class="so" data-v="一般">一般</div><div class="so" data-v="蹿稀">蹿稀</div>
       </div></div>`;
-    refreshSeg('qc-sev-seg', String(parsed.severity||3));
-    document.getElementById('qc-sev-seg').addEventListener('click', e=>{ const o=e.target.closest('.so'); if(!o) return; refreshSeg('qc-sev-seg',o.dataset.v); });
+    refreshSeg('qc-consistency-seg', parsed.consistency||'正常');
+    document.getElementById('qc-consistency-seg').addEventListener('click', e=>{ const o=e.target.closest('.so'); if(!o) return; refreshSeg('qc-consistency-seg',o.dataset.v); });
   } else if (qcType==='sleep') {
     el.innerHTML = `<div class="row2"><div class="fg" style="margin-bottom:0"><label class="flbl">入睡时间</label><input class="fi" id="qc-bedtime" type="time" value="${parsed.bedTime||''}"></div>
       <div class="fg" style="margin-bottom:0"><label class="flbl">起床时间</label><input class="fi" id="qc-waketime" type="time" value="${parsed.wakeTime||document.getElementById('qc-time').value}"></div></div>`;
@@ -1038,9 +1076,10 @@ function qcConfirm() {
     data.mealType = sel ? sel.dataset.v : '';
     data.food = text;
   } else if (qcType==='symptom') {
-    const sel = document.querySelector('#qc-sev-seg .so.sel');
-    data.severity = sel ? parseInt(sel.dataset.v) : 3;
     data.symptom = text;
+  } else if (qcType==='bowel') {
+    const sel = document.querySelector('#qc-consistency-seg .so.sel');
+    data.consistency = sel ? sel.dataset.v : '正常';
   } else if (qcType==='sleep') {
     const bedTime = document.getElementById('qc-bedtime').value || '23:00';
     const wakeTime = document.getElementById('qc-waketime').value || time;
@@ -1099,14 +1138,13 @@ const HEALTH_TOOL = {
       meal_type: { type:'string', description:'若entry_type=meal，餐次：早餐/午餐/晚餐/加餐，没提到空字符串' },
       food: { type:'string', description:'若entry_type=meal，吃了什么，清理过的描述' },
       symptom: { type:'string', description:'若entry_type=symptom，症状描述，清理过的' },
-      severity: { type:'integer', description:'若entry_type=symptom，严重程度1-5，不确定给3' },
-      bristol_type: { type:'integer', description:'若entry_type=bowel且提到性状，布里斯托分类1-7，没提到给0' },
+      consistency: { type:'string', enum:['正常','一般','蹿稀'], description:'若entry_type=bowel，根据描述判断排便情况，不确定给"正常"' },
       bed_time: { type:'string', description:'若entry_type=sleep，入睡时间HH:MM，没提到空字符串' },
       wake_time: { type:'string', description:'若entry_type=sleep，起床时间HH:MM，没提到空字符串' },
       sleep_quality: { type:'string', description:'若entry_type=sleep，质量：好/一般/差' },
       corrected_text: { type:'string', description:'解析口头更正后干净的备注文本' }
     },
-    required: ['entry_type','time_hint','date_hint','meal_type','food','symptom','severity','bristol_type','bed_time','wake_time','sleep_quality','corrected_text']
+    required: ['entry_type','time_hint','date_hint','meal_type','food','symptom','consistency','bed_time','wake_time','sleep_quality','corrected_text']
   }
 };
 async function callClaudeExtract(text) {
@@ -1141,7 +1179,7 @@ async function qcAIParse() {
     qcType = r.entry_type; refreshSeg('qc-type-seg', qcType);
     document.getElementById('qc-date').value = r.date_hint || todayStr();
     document.getElementById('qc-time').value = r.time_hint || nowTime();
-    qcRenderExtraFields({ mealType:r.meal_type, severity:r.severity, bedTime:r.bed_time, wakeTime:r.wake_time });
+    qcRenderExtraFields({ mealType:r.meal_type, consistency:r.consistency, bedTime:r.bed_time, wakeTime:r.wake_time });
     st.textContent = '✅ AI 解析完成'; st.style.color='var(--teal)';
   } catch(e) { st.textContent = '❌ '+e.message; st.style.color='var(--coral)'; }
 }
