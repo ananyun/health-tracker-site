@@ -66,6 +66,26 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-se
 .sev-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border-md); }
 .sev-dot.on { background: var(--coral); }
 
+/* CALENDAR */
+.cal-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.cal-ttl { font-size: 15px; font-weight: 500; }
+.cal-arr { padding: 4px 10px; font-size: 15px; border: 1px solid var(--border-md); border-radius: var(--r-sm); background: var(--surface); cursor: pointer; }
+.cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 5px; }
+.cal-wday { text-align: center; font-size: 11px; color: var(--text-3); padding: 4px 0; font-weight: 500; }
+.cal-day { background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; min-height: 48px; gap: 1px; }
+.cal-day:hover:not(.dim) { border-color: #c5c0f0; }
+.cal-day.dim { opacity: .18; pointer-events: none; }
+.cal-day.is-today { border-color: var(--purple); }
+.cal-day.has-entry { color: #fff; border-color: transparent; }
+.cal-day.has-entry.bowel { background: var(--amber); }
+.cal-day.has-entry.meal { background: var(--teal); }
+.cal-day.has-entry.symptom { background: var(--coral); }
+.cal-day.has-entry.sleep { background: var(--blue); }
+.cal-d-num { font-size: 13px; font-weight: 500; }
+.cal-day.is-today .cal-d-num { color: var(--purple); font-weight: 700; }
+.cal-day.has-entry .cal-d-num { color: #fff; }
+.cal-d-sub { font-size: 9px; opacity: .9; }
+
 /* STATS */
 .seg { display: flex; gap: 6px; flex-wrap: wrap; }
 .so { flex: 1; min-width: 60px; padding: 7px 4px; text-align: center; font-size: 12px; font-weight: 500; border: 1px solid var(--border-md); border-radius: var(--r-sm); cursor: pointer; color: var(--text-2); background: var(--surface); }
@@ -110,6 +130,7 @@ textarea.fi { resize: vertical; min-height: 68px; }
 <div class="nav">
   <div class="nav-tabs">
     <button class="nt active" id="tab-today" onclick="gotoToday()">🏠 今日</button>
+    <button class="nt" id="tab-cal" onclick="gotoCalendar()">📅 日历</button>
     <button class="nt" id="tab-stats" onclick="gotoStats()">📊 统计</button>
   </div>
   <button id="srv-badge" onclick="openSettings()" style="font-size:11px;padding:0 12px;height:100%;display:flex;align-items:center;color:var(--text-3);white-space:nowrap;border:none;border-left:1px solid var(--border);background:none;cursor:pointer">📱 本地</button>
@@ -147,6 +168,30 @@ textarea.fi { resize: vertical; min-height: 68px; }
 
   <div class="sec-lbl">今日记录</div>
   <div id="today-feed"></div>
+</div>
+
+<!-- CALENDAR PAGE -->
+<div class="page" id="pg-calendar">
+  <div class="t-date" style="margin-bottom:14px">日历</div>
+  <div class="seg" id="seg-cal-cat">
+    <div class="so" data-v="bowel">🚽 排便</div>
+    <div class="so" data-v="meal">🍽️ 吃饭</div>
+    <div class="so" data-v="symptom">🤒 不舒服</div>
+    <div class="so" data-v="sleep">😴 睡眠</div>
+  </div>
+  <div id="cal-container" style="margin-top:16px"></div>
+</div>
+
+<!-- MODAL: DAY DETAIL -->
+<div class="ov" id="ov-daydetail">
+  <div class="modal" style="max-width:420px">
+    <div class="m-ttl" id="dd-ttl"></div>
+    <div id="dd-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px"></div>
+    <div class="mfoot" style="margin-top:0">
+      <button class="mbtn" onclick="closeOv('ov-daydetail')">关闭</button>
+      <button class="mbtn-s" onclick="ddAddEntry()">+ 在这天添加记录</button>
+    </div>
+  </div>
 </div>
 
 <!-- STATS PAGE -->
@@ -564,10 +609,17 @@ function refreshSeg(segId, val) { document.querySelectorAll(`#${segId} .so`).for
 function hidePages() { document.querySelectorAll('.page').forEach(p=>p.classList.remove('on')); }
 function setActiveTab(id) {
   document.querySelectorAll('.nt').forEach(t=>t.classList.remove('active'));
-  (id==='today'?document.getElementById('tab-today'):document.getElementById('tab-stats')).classList.add('active');
+  const map = { today:'tab-today', cal:'tab-cal', stats:'tab-stats' };
+  document.getElementById(map[id]).classList.add('active');
 }
 function gotoToday() { hidePages(); document.getElementById('pg-today').classList.add('on'); setActiveTab('today'); renderToday(); }
 function gotoStats() { hidePages(); document.getElementById('pg-stats').classList.add('on'); setActiveTab('stats'); renderStats(); }
+function gotoCalendar() { hidePages(); document.getElementById('pg-calendar').classList.add('on'); setActiveTab('cal'); renderCalendarPage(); }
+function refreshCurrentPage() {
+  if (document.getElementById('pg-today').classList.contains('on')) renderToday();
+  else if (document.getElementById('pg-calendar').classList.contains('on')) renderCalendarPage();
+  else if (document.getElementById('pg-stats').classList.contains('on')) renderStats();
+}
 
 // ── TODAY RENDER ──────────────────────────────────────────────
 function renderToday() {
@@ -619,12 +671,12 @@ function sevDotsH(n) {
 function quickDelete(id) {
   if (!confirm('删除这条记录？')) return;
   db.logs = db.logs.filter(l=>l.id!==id);
-  save(); renderToday();
+  save(); refreshCurrentPage();
 }
 
 // ── BOWEL ──────────────────────────────────────────────────
 let editingBowelId = null;
-function openBowelForm(id) {
+function openBowelForm(id, prefillDate) {
   editingBowelId = id || null;
   document.getElementById('bw-del').style.display = id ? 'inline-block' : 'none';
   if (id) {
@@ -632,7 +684,7 @@ function openBowelForm(id) {
     document.getElementById('bw-date').value = l.date; document.getElementById('bw-time').value = l.time;
     document.getElementById('bw-type').value = l.bristolType || ''; document.getElementById('bw-notes').value = l.notes||'';
   } else {
-    document.getElementById('bw-date').value = todayStr(); document.getElementById('bw-time').value = nowTime();
+    document.getElementById('bw-date').value = prefillDate || todayStr(); document.getElementById('bw-time').value = nowTime();
     document.getElementById('bw-type').value = ''; document.getElementById('bw-notes').value = '';
   }
   openOv('ov-bowel');
@@ -641,19 +693,19 @@ function saveBowel() {
   const data = { type:'bowel', date:document.getElementById('bw-date').value, time:document.getElementById('bw-time').value, bristolType:document.getElementById('bw-type').value, notes:document.getElementById('bw-notes').value.trim() };
   if (editingBowelId) { const l = db.logs.find(x=>x.id===editingBowelId); Object.assign(l, data); }
   else db.logs.push({ id:uid(), ...data });
-  save(); closeOv('ov-bowel'); renderToday();
+  save(); closeOv('ov-bowel'); refreshCurrentPage();
 }
 function deleteLog(kind) {
   const idMap = { bowel:editingBowelId, meal:editingMealId, symptom:editingSymptomId, sleep:editingSleepId };
   const id = idMap[kind]; if (!id) return;
   if (!confirm('删除？')) return;
   db.logs = db.logs.filter(l=>l.id!==id);
-  save(); closeOv('ov-'+kind); renderToday();
+  save(); closeOv('ov-'+kind); refreshCurrentPage();
 }
 
 // ── MEAL ──────────────────────────────────────────────────
 let editingMealId = null, selMealType = '早餐';
-function openMealForm(id) {
+function openMealForm(id, prefillDate) {
   editingMealId = id || null;
   document.getElementById('ml-del').style.display = id ? 'inline-block' : 'none';
   if (id) {
@@ -661,7 +713,7 @@ function openMealForm(id) {
     document.getElementById('ml-date').value = l.date; document.getElementById('ml-time').value = l.time;
     selMealType = l.mealType || '早餐'; document.getElementById('ml-food').value = l.food||'';
   } else {
-    document.getElementById('ml-date').value = todayStr(); document.getElementById('ml-time').value = nowTime();
+    document.getElementById('ml-date').value = prefillDate || todayStr(); document.getElementById('ml-time').value = nowTime();
     const h = new Date().getHours();
     selMealType = h<10?'早餐':h<15?'午餐':h<21?'晚餐':'加餐';
     document.getElementById('ml-food').value = '';
@@ -674,12 +726,12 @@ function saveMeal() {
   const data = { type:'meal', date:document.getElementById('ml-date').value, time:document.getElementById('ml-time').value, mealType:selMealType, food:document.getElementById('ml-food').value.trim() };
   if (editingMealId) { const l = db.logs.find(x=>x.id===editingMealId); Object.assign(l, data); }
   else db.logs.push({ id:uid(), ...data });
-  save(); closeOv('ov-meal'); renderToday();
+  save(); closeOv('ov-meal'); refreshCurrentPage();
 }
 
 // ── SYMPTOM ──────────────────────────────────────────────────
 let editingSymptomId = null, selSeverity = 3;
-function openSymptomForm(id) {
+function openSymptomForm(id, prefillDate) {
   editingSymptomId = id || null;
   document.getElementById('sy-del').style.display = id ? 'inline-block' : 'none';
   if (id) {
@@ -687,7 +739,7 @@ function openSymptomForm(id) {
     document.getElementById('sy-date').value = l.date; document.getElementById('sy-time').value = l.time;
     document.getElementById('sy-symptom').value = l.symptom||''; selSeverity = l.severity||3; document.getElementById('sy-notes').value = l.notes||'';
   } else {
-    document.getElementById('sy-date').value = todayStr(); document.getElementById('sy-time').value = nowTime();
+    document.getElementById('sy-date').value = prefillDate || todayStr(); document.getElementById('sy-time').value = nowTime();
     document.getElementById('sy-symptom').value = ''; selSeverity = 3; document.getElementById('sy-notes').value = '';
   }
   refreshSeg('seg-severity', String(selSeverity));
@@ -700,7 +752,7 @@ function saveSymptom() {
   const data = { type:'symptom', date:document.getElementById('sy-date').value, time:document.getElementById('sy-time').value, symptom, severity:selSeverity, notes:document.getElementById('sy-notes').value.trim() };
   if (editingSymptomId) { const l = db.logs.find(x=>x.id===editingSymptomId); Object.assign(l, data); }
   else db.logs.push({ id:uid(), ...data });
-  save(); closeOv('ov-symptom'); renderToday();
+  save(); closeOv('ov-symptom'); refreshCurrentPage();
 }
 
 // ── SLEEP ──────────────────────────────────────────────────
@@ -712,7 +764,7 @@ function computeSleepDuration(bedDate, bedTime, wakeDate, wakeTime) {
   if (diff < 0) diff += 24*60;
   return Math.round(diff);
 }
-function openSleepForm(id) {
+function openSleepForm(id, prefillWakeDate) {
   editingSleepId = id || null;
   document.getElementById('sl-del').style.display = id ? 'inline-block' : 'none';
   if (id) {
@@ -721,9 +773,10 @@ function openSleepForm(id) {
     document.getElementById('sl-wakedate').value = l.wakeDate; document.getElementById('sl-waketime').value = l.wakeTime;
     selQuality = l.quality||'好'; document.getElementById('sl-notes').value = l.notes||'';
   } else {
-    const y = new Date(); y.setDate(y.getDate()-1);
+    const wakeDate = prefillWakeDate || todayStr();
+    const y = new Date(wakeDate+'T00:00:00'); y.setDate(y.getDate()-1);
     document.getElementById('sl-beddate').value = y.toISOString().slice(0,10); document.getElementById('sl-bedtime').value = '23:00';
-    document.getElementById('sl-wakedate').value = todayStr(); document.getElementById('sl-waketime').value = '07:00';
+    document.getElementById('sl-wakedate').value = wakeDate; document.getElementById('sl-waketime').value = '07:00';
     selQuality = '好'; document.getElementById('sl-notes').value = '';
   }
   refreshSeg('seg-quality', selQuality);
@@ -737,7 +790,74 @@ function saveSleep() {
   const data = { type:'sleep', date:wakeDate, bedDate, bedTime, wakeDate, wakeTime, durationMin, quality:selQuality, notes:document.getElementById('sl-notes').value.trim() };
   if (editingSleepId) { const l = db.logs.find(x=>x.id===editingSleepId); Object.assign(l, data); }
   else db.logs.push({ id:uid(), ...data });
-  save(); closeOv('ov-sleep'); renderToday();
+  save(); closeOv('ov-sleep'); refreshCurrentPage();
+}
+
+// ── CALENDAR ──────────────────────────────────────────────────
+let calCategory = 'bowel', calMonth = new Date(), ddDate = null;
+document.getElementById('seg-cal-cat').addEventListener('click', e=>{ const o=e.target.closest('.so'); if(!o) return; calCategory=o.dataset.v; refreshSeg('seg-cal-cat',calCategory); renderCalendarPage(); });
+function calMoveMonth(dir) { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()+dir, 1); renderCalendarPage(); }
+function logsForDate(cat, dateStr) {
+  return db.logs.filter(l => l.type===cat && (cat==='sleep' ? l.wakeDate===dateStr : l.date===dateStr));
+}
+function dayCellContent(cat, dateStr) {
+  const logs = logsForDate(cat, dateStr);
+  if (!logs.length) return null;
+  if (cat==='sleep') { const h = (logs[0].durationMin/60).toFixed(1); return `${h}h`; }
+  if (cat==='symptom') { const maxSev = Math.max(...logs.map(l=>l.severity||0)); return logs.length>1?`×${logs.length}`:''; }
+  return logs.length>1 ? `×${logs.length}` : '✓';
+}
+function renderCalendarPage() {
+  refreshSeg('seg-cal-cat', calCategory);
+  const el = document.getElementById('cal-container');
+  const yr = calMonth.getFullYear(), m = calMonth.getMonth();
+  const t = todayStr();
+  const WD = ['日','一','二','三','四','五','六'];
+  const firstWd = new Date(yr,m,1).getDay();
+  const dim = new Date(yr,m+1,0).getDate();
+  const prevD = new Date(yr,m,0).getDate();
+  let h = `<div class="cal-nav"><button class="cal-arr" onclick="calMoveMonth(-1)">‹</button><div class="cal-ttl">${yr}年${m+1}月</div><button class="cal-arr" onclick="calMoveMonth(1)">›</button></div><div class="cal-grid">${WD.map(w=>`<div class="cal-wday">${w}</div>`).join('')}`;
+  for (let i=firstWd-1;i>=0;i--) h += `<div class="cal-day dim"><div class="cal-d-num">${prevD-i}</div></div>`;
+  for (let d=1; d<=dim; d++) {
+    const ds = `${yr}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const content = dayCellContent(calCategory, ds);
+    const has = content !== null;
+    h += `<div class="cal-day ${ds===t?'is-today':''} ${has?'has-entry '+calCategory:''}" onclick="calClickDay('${ds}')"><div class="cal-d-num">${d}</div>${has?`<div class="cal-d-sub">${content}</div>`:''}</div>`;
+  }
+  const tail = (firstWd+dim)%7===0 ? 0 : 7-(firstWd+dim)%7;
+  for (let i=1;i<=tail;i++) h += `<div class="cal-day dim"><div class="cal-d-num">${i}</div></div>`;
+  el.innerHTML = h + '</div>';
+}
+function calClickDay(dateStr) {
+  ddDate = dateStr;
+  const logs = logsForDate(calCategory, dateStr);
+  document.getElementById('dd-ttl').textContent = `${TYPE_META[calCategory].icon} ${dateStr}`;
+  const list = document.getElementById('dd-list');
+  if (!logs.length) { list.innerHTML = '<div class="empty-msg">这天还没有记录</div>'; }
+  else {
+    list.innerHTML = logs.map(l => {
+      let title='', sub='';
+      if (l.type==='bowel') { title = l.time; sub = (l.bristolType?'布里斯托'+l.bristolType+'型 ':'') + (l.notes||''); }
+      else if (l.type==='meal') { title = `${l.time} ${l.mealType||''}`; sub = l.food||''; }
+      else if (l.type==='symptom') { title = `${l.time} ${l.symptom}`; sub = (l.notes||''); }
+      else if (l.type==='sleep') { title = `${l.bedTime}→${l.wakeTime}`; sub = `${(l.durationMin/60).toFixed(1)}小时 · ${l.quality||''} ${l.notes||''}`; }
+      return `<div class="feed-row" style="cursor:pointer;margin-bottom:0" onclick="ddEditEntry('${l.id}')">
+        <div class="feed-icon ${l.type}">${TYPE_META[l.type].icon}</div>
+        <div class="feed-info"><div class="feed-title">${escHtml(title)}</div><div class="feed-sub">${escHtml(sub)}</div></div>
+      </div>`;
+    }).join('');
+  }
+  openOv('ov-daydetail');
+}
+function ddEditEntry(id) {
+  closeOv('ov-daydetail');
+  const openers = { bowel:openBowelForm, meal:openMealForm, symptom:openSymptomForm, sleep:openSleepForm };
+  openers[calCategory](id);
+}
+function ddAddEntry() {
+  closeOv('ov-daydetail');
+  const openers = { bowel:openBowelForm, meal:openMealForm, symptom:openSymptomForm, sleep:openSleepForm };
+  openers[calCategory](null, ddDate);
 }
 
 // ── STATS ──────────────────────────────────────────────────
