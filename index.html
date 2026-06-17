@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>健康记录</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f7f6f3; --surface: #fff;
+  --border: rgba(0,0,0,0.08); --border-md: rgba(0,0,0,0.15);
+  --text: #1a1a18; --text-2: #5c5c58; --text-3: #9a9a94;
+  --purple: #7F77DD; --purple-bg: #EEEDFE;
+  --teal: #1D9E75; --teal-bg: #E1F5EE;
+  --coral: #D85A30; --coral-bg: #FAECE7;
+  --amber: #BA7517; --amber-bg: #FAEEDA;
+  --blue: #2B7FD8; --blue-bg: #E6F0FB;
+  --r: 10px; --r-sm: 6px;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: var(--bg); color: var(--text); }
+
+/* NAV */
+.nav { display: flex; align-items: stretch; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 20; height: 48px; }
+.nav-tabs { display: flex; flex: 1; }
+.nt { flex-shrink: 0; padding: 0 16px; font-size: 13px; font-weight: 500; color: var(--text-3); border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; display: flex; align-items: center; gap: 7px; }
+.nt.active { color: var(--purple); border-bottom-color: var(--purple); }
+.nt:hover:not(.active) { color: var(--text-2); background: var(--bg); }
+.nav-add { width: 48px; border: none; background: none; font-size: 16px; color: var(--text-3); cursor: pointer; border-left: 1px solid var(--border); }
+.nav-add:hover { color: var(--purple); background: var(--purple-bg); }
+
+/* PAGES */
+.page { display: none; padding: 20px; max-width: 720px; margin: 0 auto; }
+.page.on { display: block; }
+
+/* TODAY */
+.t-date { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+.t-sub { font-size: 13px; color: var(--text-3); margin-bottom: 20px; }
+.sec-lbl { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 9px; }
+
+.quickcap-btn { width: 100%; padding: 14px 16px; font-size: 14px; font-weight: 500; border: 1.5px dashed #c5c0f0; border-radius: var(--r); background: var(--purple-bg); color: var(--purple); cursor: pointer; text-align: left; margin-bottom: 18px; }
+.quickcap-btn:hover { border-style: solid; }
+
+.quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px; }
+.quick-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 16px 14px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.quick-card:hover { border-color: #c5c0f0; }
+.quick-card .qc-icon { font-size: 26px; }
+.quick-card .qc-label { font-size: 13px; font-weight: 500; }
+.quick-card .qc-count { font-size: 11px; color: var(--text-3); }
+
+.feed-row { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 11px 14px; display: flex; align-items: center; gap: 12px; margin-bottom: 7px; }
+.feed-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+.feed-icon.bowel { background: var(--amber-bg); }
+.feed-icon.meal { background: var(--teal-bg); }
+.feed-icon.symptom { background: var(--coral-bg); }
+.feed-icon.sleep { background: var(--blue-bg); }
+.feed-info { flex: 1; min-width: 0; }
+.feed-title { font-size: 14px; font-weight: 500; }
+.feed-sub { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+.feed-time { font-size: 12px; color: var(--text-3); flex-shrink: 0; }
+.feed-del { background: none; border: none; cursor: pointer; color: var(--text-3); font-size: 17px; padding: 2px 4px; flex-shrink: 0; }
+.feed-del:hover { color: var(--coral); }
+.empty-msg { font-size: 14px; color: var(--text-3); text-align: center; padding: 20px 0; }
+
+/* SEVERITY DOTS */
+.sev-dots { display: inline-flex; gap: 2px; vertical-align: middle; }
+.sev-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border-md); }
+.sev-dot.on { background: var(--coral); }
+
+/* STATS */
+.seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.so { flex: 1; min-width: 60px; padding: 7px 4px; text-align: center; font-size: 12px; font-weight: 500; border: 1px solid var(--border-md); border-radius: var(--r-sm); cursor: pointer; color: var(--text-2); background: var(--surface); }
+.so.sel { background: var(--purple-bg); border-color: var(--purple); color: var(--purple); }
+.stat-summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin: 16px 0 22px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 12px 8px; text-align: center; }
+.stat-v { font-size: 18px; font-weight: 600; }
+.stat-l { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.bar-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+.bar-name { width: 56px; font-size: 12px; color: var(--text-3); flex-shrink: 0; }
+.bar-track { flex: 1; height: 16px; background: var(--bg); border-radius: 8px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 8px; min-width: 3px; }
+.bar-val { width: 56px; text-align: right; font-size: 12px; color: var(--text-3); flex-shrink: 0; }
+
+/* MODALS */
+.ov { position: fixed; inset: 0; background: rgba(0,0,0,.32); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
+.ov.on { display: flex; }
+.modal { background: var(--surface); border-radius: 14px; padding: 24px; width: 100%; max-width: 440px; max-height: 85vh; max-height: 85dvh; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.m-ttl { font-size: 17px; font-weight: 500; margin-bottom: 16px; }
+.m-sub { font-size: 13px; color: var(--text-2); margin-bottom: 14px; line-height: 1.5; }
+.fg { margin-bottom: 13px; }
+.flbl { font-size: 13px; font-weight: 500; color: var(--text-2); display: block; margin-bottom: 5px; }
+.fi { width: 100%; padding: 8px 11px; border: 1px solid var(--border-md); border-radius: var(--r-sm); font-size: 14px; font-family: inherit; background: #fafaf8; color: var(--text); outline: none; }
+.fi:focus { border-color: var(--purple); background: #fff; }
+textarea.fi { resize: vertical; min-height: 68px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.mfoot { display: flex; gap: 8px; margin-top: 18px; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
+.mbtn { padding: 8px 16px; border: 1px solid var(--border-md); border-radius: var(--r-sm); background: none; color: var(--text-2); cursor: pointer; font-size: 13px; font-family: inherit; }
+.mbtn-s { padding: 8px 18px; background: var(--purple); color: #fff; border: none; border-radius: var(--r-sm); cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; }
+.mbtn-o { padding: 8px 14px; background: none; color: var(--teal); border: 1px solid var(--teal); border-radius: var(--r-sm); cursor: pointer; font-size: 13px; font-family: inherit; }
+.mbtn-del { padding: 8px 14px; background: none; color: var(--coral); border: 1px solid var(--coral); border-radius: var(--r-sm); cursor: pointer; font-size: 13px; margin-right: auto; font-family: inherit; }
+.hint { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+
+.qc-mic-btn { padding: 9px 16px; font-size: 13px; font-weight: 500; border: 1.5px solid var(--purple); border-radius: 20px; background: var(--purple-bg); color: var(--purple); cursor: pointer; display: none; align-items: center; gap: 6px; margin-bottom: 10px; }
+.qc-mic-btn.listening { background: var(--coral); border-color: var(--coral); color: #fff; animation: qc-pulse 1.2s infinite; }
+@keyframes qc-pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+.detected-box { background: var(--purple-bg); border: 1px solid #c5c0f0; border-radius: var(--r-sm); padding: 12px 14px; margin-bottom: 14px; font-size: 13px; color: #4a3f8a; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-tabs">
+    <button class="nt active" id="tab-today" onclick="gotoToday()">🏠 今日</button>
+    <button class="nt" id="tab-stats" onclick="gotoStats()">📊 统计</button>
+  </div>
+  <button id="srv-badge" onclick="openSettings()" style="font-size:11px;padding:0 12px;height:100%;display:flex;align-items:center;color:var(--text-3);white-space:nowrap;border:none;border-left:1px solid var(--border);background:none;cursor:pointer">📱 本地</button>
+</div>
+
+<!-- TODAY PAGE -->
+<div class="page on" id="pg-today">
+  <div class="t-date" id="hdr-date"></div>
+  <div class="t-sub" id="hdr-sub"></div>
+
+  <button class="quickcap-btn" onclick="openQuickCapture()">🎙️ 快速记录 — 说一句话，自动识别类型 / 时间 / 细节</button>
+
+  <div class="quick-grid">
+    <div class="quick-card" onclick="openBowelForm()">
+      <div class="qc-icon">🚽</div>
+      <div class="qc-label">排便</div>
+      <div class="qc-count" id="cnt-bowel">今日 0 次</div>
+    </div>
+    <div class="quick-card" onclick="openMealForm()">
+      <div class="qc-icon">🍽️</div>
+      <div class="qc-label">吃饭</div>
+      <div class="qc-count" id="cnt-meal">今日 0 次</div>
+    </div>
+    <div class="quick-card" onclick="openSymptomForm()">
+      <div class="qc-icon">🤒</div>
+      <div class="qc-label">不舒服</div>
+      <div class="qc-count" id="cnt-symptom">今日 0 次</div>
+    </div>
+    <div class="quick-card" onclick="openSleepForm()">
+      <div class="qc-icon">😴</div>
+      <div class="qc-label">睡眠</div>
+      <div class="qc-count" id="cnt-sleep">未记录</div>
+    </div>
+  </div>
+
+  <div class="sec-lbl">今日记录</div>
+  <div id="today-feed"></div>
+</div>
+
+<!-- STATS PAGE -->
+<div class="page" id="pg-stats">
+  <div class="t-date" style="margin-bottom:14px">统计</div>
+  <div class="seg" id="seg-stat-period">
+    <div class="so" data-v="week">本周</div>
+    <div class="so" data-v="month">本月</div>
+  </div>
+  <div class="stat-summary" id="stat-summary"></div>
+
+  <div class="sec-lbl">😴 睡眠时长（小时/天）</div>
+  <div id="chart-sleep" style="margin-bottom:22px"></div>
+
+  <div class="sec-lbl">🚽 排便次数（次/天）</div>
+  <div id="chart-bowel" style="margin-bottom:22px"></div>
+
+  <div class="sec-lbl">🍽️ 进食次数（次/天）</div>
+  <div id="chart-meal" style="margin-bottom:22px"></div>
+
+  <div class="sec-lbl">🤒 不舒服记录</div>
+  <div id="list-symptom"></div>
+</div>
+
+<!-- MODAL: BOWEL -->
+<div class="ov" id="ov-bowel">
+  <div class="modal" style="max-width:400px">
+    <div class="m-ttl">🚽 记录排便</div>
+    <div class="row2">
+      <div class="fg"><label class="flbl">日期</label><input class="fi" id="bw-date" type="date"></div>
+      <div class="fg"><label class="flbl">时间</label><input class="fi" id="bw-time" type="time"></div>
+    </div>
+    <div class="fg">
+      <label class="flbl">性状（布里斯托分类，可选）</label>
+      <select class="fi" id="bw-type">
+        <option value="">不记录</option>
+        <option value="1">1型 - 硬球状（便秘）</option>
+        <option value="2">2型 - 块状偏硬</option>
+        <option value="3">3型 - 表面有裂纹</option>
+        <option value="4">4型 - 光滑软便（正常）</option>
+        <option value="5">5型 - 软块边缘清楚</option>
+        <option value="6">6型 - 糊状边缘不清</option>
+        <option value="7">7型 - 完全水状（腹泻）</option>
+      </select>
+    </div>
+    <div class="fg"><label class="flbl">备注</label><textarea class="fi" id="bw-notes" placeholder="可选..." style="min-height:50px"></textarea></div>
+    <div class="mfoot">
+      <button class="mbtn-del" id="bw-del" onclick="deleteLog('bowel')" style="display:none">删除</button>
+      <button class="mbtn" onclick="closeOv('ov-bowel')">取消</button>
+      <button class="mbtn-s" onclick="saveBowel()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: MEAL -->
+<div class="ov" id="ov-meal">
+  <div class="modal" style="max-width:400px">
+    <div class="m-ttl">🍽️ 记录吃饭</div>
+    <div class="row2">
+      <div class="fg"><label class="flbl">日期</label><input class="fi" id="ml-date" type="date"></div>
+      <div class="fg"><label class="flbl">时间</label><input class="fi" id="ml-time" type="time"></div>
+    </div>
+    <div class="fg">
+      <div class="flbl">餐次</div>
+      <div class="seg" id="seg-mealtype">
+        <div class="so" data-v="早餐">早餐</div>
+        <div class="so" data-v="午餐">午餐</div>
+        <div class="so" data-v="晚餐">晚餐</div>
+        <div class="so" data-v="加餐">加餐</div>
+      </div>
+    </div>
+    <div class="fg"><label class="flbl">吃了什么</label><textarea class="fi" id="ml-food" placeholder="可选..." style="min-height:50px"></textarea></div>
+    <div class="mfoot">
+      <button class="mbtn-del" id="ml-del" onclick="deleteLog('meal')" style="display:none">删除</button>
+      <button class="mbtn" onclick="closeOv('ov-meal')">取消</button>
+      <button class="mbtn-s" onclick="saveMeal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: SYMPTOM -->
+<div class="ov" id="ov-symptom">
+  <div class="modal" style="max-width:400px">
+    <div class="m-ttl">🤒 记录不舒服</div>
+    <div class="row2">
+      <div class="fg"><label class="flbl">日期</label><input class="fi" id="sy-date" type="date"></div>
+      <div class="fg"><label class="flbl">时间</label><input class="fi" id="sy-time" type="time"></div>
+    </div>
+    <div class="fg"><label class="flbl">症状</label><input class="fi" id="sy-symptom" placeholder="如：头疼、肚子疼、恶心..."></div>
+    <div class="fg">
+      <div class="flbl">严重程度</div>
+      <div class="seg" id="seg-severity">
+        <div class="so" data-v="1">1 轻微</div>
+        <div class="so" data-v="2">2</div>
+        <div class="so" data-v="3">3 中等</div>
+        <div class="so" data-v="4">4</div>
+        <div class="so" data-v="5">5 严重</div>
+      </div>
+    </div>
+    <div class="fg"><label class="flbl">备注</label><textarea class="fi" id="sy-notes" placeholder="可选..." style="min-height:50px"></textarea></div>
+    <div class="mfoot">
+      <button class="mbtn-del" id="sy-del" onclick="deleteLog('symptom')" style="display:none">删除</button>
+      <button class="mbtn" onclick="closeOv('ov-symptom')">取消</button>
+      <button class="mbtn-s" onclick="saveSymptom()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: SLEEP -->
+<div class="ov" id="ov-sleep">
+  <div class="modal" style="max-width:420px">
+    <div class="m-ttl">😴 记录睡眠</div>
+    <p class="m-sub">记录昨晚的睡眠情况（跨夜：入睡时间在前一天晚上，起床时间在今天）</p>
+    <div class="row2">
+      <div class="fg"><label class="flbl">入睡日期</label><input class="fi" id="sl-beddate" type="date"></div>
+      <div class="fg"><label class="flbl">入睡时间</label><input class="fi" id="sl-bedtime" type="time"></div>
+    </div>
+    <div class="row2">
+      <div class="fg"><label class="flbl">起床日期</label><input class="fi" id="sl-wakedate" type="date"></div>
+      <div class="fg"><label class="flbl">起床时间</label><input class="fi" id="sl-waketime" type="time"></div>
+    </div>
+    <div class="fg">
+      <div class="flbl">睡眠质量</div>
+      <div class="seg" id="seg-quality">
+        <div class="so" data-v="好">😊 好</div>
+        <div class="so" data-v="一般">😐 一般</div>
+        <div class="so" data-v="差">😣 差</div>
+      </div>
+    </div>
+    <div class="fg"><label class="flbl">备注</label><textarea class="fi" id="sl-notes" placeholder="如：失眠、做梦、夜醒..." style="min-height:50px"></textarea></div>
+    <div class="mfoot">
+      <button class="mbtn-del" id="sl-del" onclick="deleteLog('sleep')" style="display:none">删除</button>
+      <button class="mbtn" onclick="closeOv('ov-sleep')">取消</button>
+      <button class="mbtn-s" onclick="saveSleep()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: QUICK CAPTURE -->
+<div class="ov" id="ov-quickcap">
+  <div class="modal" style="max-width:460px">
+    <div class="m-ttl">🎙️ 快速记录</div>
+    <p class="m-sub">说一段话或打字，比如："早上8点拉肚子了，有点水状"、"中午吃了沙拉和鸡胸肉"、"昨晚11点半睡的今早7点起的，睡得还行"<br>
+      <span style="color:var(--text-3)">手机上可以用键盘麦克风图标直接口述</span></p>
+    <button class="qc-mic-btn" id="qc-mic-btn" onclick="qcToggleMic()">🎤 按这里开始说话</button>
+    <div class="fg">
+      <textarea class="fi" id="qc-text" placeholder="点这里说话或打字…" style="min-height:110px" oninput="qcAutoParse()"></textarea>
+    </div>
+    <div class="fg" id="qc-ai-row" style="display:none;margin-top:-6px">
+      <button class="qc-mic-btn" id="qc-ai-btn" style="display:inline-flex" onclick="qcAIParse()">✨ AI 智能解析（更准确，按次计费）</button>
+      <div id="qc-ai-status" style="font-size:12px;color:var(--text-3);margin-top:4px"></div>
+    </div>
+    <div class="fg" id="qc-preview" style="display:none">
+      <div class="detected-box">
+        <strong style="display:block;margin-bottom:8px;color:var(--purple)">识别结果（可修改）</strong>
+        <div class="fg" style="margin-bottom:10px">
+          <label class="flbl">类型</label>
+          <div class="seg" id="qc-type-seg">
+            <div class="so" data-v="bowel">🚽 排便</div>
+            <div class="so" data-v="meal">🍽️ 吃饭</div>
+            <div class="so" data-v="symptom">🤒 不舒服</div>
+            <div class="so" data-v="sleep">😴 睡眠</div>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="fg" style="margin-bottom:0"><label class="flbl">日期</label><input class="fi" id="qc-date" type="date"></div>
+          <div class="fg" style="margin-bottom:0"><label class="flbl">时间</label><input class="fi" id="qc-time" type="time"></div>
+        </div>
+        <div id="qc-extra-fields" style="margin-top:10px"></div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="mbtn" onclick="closeOv('ov-quickcap')">取消</button>
+      <button class="mbtn-s" onclick="qcConfirm()">识别并保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: SETTINGS -->
+<div class="ov" id="ov-settings">
+  <div class="modal" style="max-width:460px">
+    <div class="m-ttl">☁️ 云同步设置</div>
+    <p style="font-size:13px;color:var(--text-2);line-height:1.7;margin-bottom:16px">
+      使用 <strong>JSONBin.io</strong> 免费云存储，手机和电脑共享同一份数据。
+    </p>
+    <div style="background:var(--bg);border-radius:var(--r);padding:14px 16px;margin-bottom:16px;font-size:13px;line-height:1.9;color:var(--text-2)">
+      <b style="display:block;margin-bottom:4px;color:var(--text)">三步配置：</b>
+      1. 打开 <span style="color:var(--purple);font-weight:500">jsonbin.io</span> → 免费注册<br>
+      2. 点 <b>New Bin</b>，内容填 <code>{"logs":[]}</code> → <b>Create Bin</b><br>
+         页面 URL 里复制 Bin ID<br>
+      3. 右上角头像 → <b>API Keys</b> → 复制 <b>Master Key</b>
+    </div>
+    <div class="fg"><label class="flbl">Bin ID</label><input class="fi" id="cfg-binid" placeholder="如：6849abcdef1234567890abcd" style="font-family:monospace"></div>
+    <div class="fg">
+      <label class="flbl">Master Key</label>
+      <input class="fi" id="cfg-apikey" placeholder="$2a$10$..." type="password" style="font-family:monospace">
+      <div class="hint">仅存在本设备，不会上传到任何地方</div>
+    </div>
+    <div id="cfg-status" style="font-size:13px;min-height:20px;margin-bottom:4px"></div>
+    <button class="mbtn" style="width:100%;margin-bottom:10px" onclick="copySetupLink()">🔗 生成配置链接（给新设备/新网址用）</button>
+    <div class="mfoot">
+      <button class="mbtn-del" id="cfg-clear-btn" onclick="clearCloud()" style="display:none">清除配置</button>
+      <button class="mbtn" onclick="closeOv('ov-settings')">取消</button>
+      <button class="mbtn-o" onclick="testCloud()">测试连接</button>
+      <button class="mbtn-s" onclick="saveCloudConfig()">保存并同步</button>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:22px 0 18px">
+    <div class="m-ttl" style="font-size:15px">✨ AI 智能解析（可选）</div>
+    <p style="font-size:13px;color:var(--text-2);line-height:1.7;margin-bottom:14px">
+      用 Claude API 更准确地解析口语化语音/文字。<br>
+      <span style="color:var(--text-3)">按次计费，不用不花钱，可在 Anthropic 后台设消费上限。</span>
+    </p>
+    <div class="fg">
+      <label class="flbl">Anthropic API Key</label>
+      <input class="fi" id="cfg-claudekey" placeholder="sk-ant-..." type="password" style="font-family:monospace">
+      <div class="hint">仅存在本设备本地，不会同步到云端</div>
+    </div>
+    <div id="cfg-claude-status" style="font-size:13px;min-height:20px;margin-bottom:4px"></div>
+    <div class="mfoot">
+      <button class="mbtn-del" id="cfg-claude-clear-btn" onclick="clearClaudeKey()" style="display:none">清除 Key</button>
+      <button class="mbtn-o" onclick="testClaudeKey()">测试连接</button>
+      <button class="mbtn-s" onclick="saveClaudeKey()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONSTANTS ──────────────────────────────────────────────────
+const TYPE_META = {
+  bowel:   { icon:'🚽', label:'排便' },
+  meal:    { icon:'🍽️', label:'吃饭' },
+  symptom: { icon:'🤒', label:'不舒服' },
+  sleep:   { icon:'😴', label:'睡眠' },
+};
+
+// ── DATA ──────────────────────────────────────────────────
+let db = { logs: [] };
+let saveTimer = null;
+
+function getCloudCfg() { try { return JSON.parse(localStorage.getItem('health_cloud') || 'null'); } catch(e) { return null; } }
+function setCloudCfg(cfg) { localStorage.setItem('health_cloud', JSON.stringify(cfg)); }
+function cloudHeaders(key) { return { 'Content-Type':'application/json', 'X-Master-Key':key, 'X-Bin-Meta':'false' }; }
+function cloudUrl(binId) { return `https://api.jsonbin.io/v3/b/${binId}/latest`; }
+function cloudPutUrl(binId) { return `https://api.jsonbin.io/v3/b/${binId}`; }
+function fetchWithTimeout(url, opts, ms=8000) {
+  const ctrl = new AbortController();
+  const id = setTimeout(()=>ctrl.abort(), ms);
+  return fetch(url, {...opts, signal:ctrl.signal}).finally(()=>clearTimeout(id));
+}
+function normDB() { if (!db.logs) db.logs = []; }
+
+async function load() {
+  tryApplySetupParam();
+  const cfg = getCloudCfg();
+  if (cfg && cfg.binId && cfg.apiKey) {
+    try {
+      const r = await fetchWithTimeout(cloudUrl(cfg.binId), { headers: cloudHeaders(cfg.apiKey) });
+      if (r.ok) {
+        const json = await r.json();
+        const record = json.record || json;
+        if (record && record.logs) { db = record; normDB(); setBadge('cloud'); return; }
+      }
+    } catch(e) {}
+    setBadge('error');
+  } else { setBadge('local'); }
+  try { const r = localStorage.getItem('health_data'); if (r) db = JSON.parse(r); } catch(e) {}
+  normDB();
+}
+function save() {
+  try { localStorage.setItem('health_data', JSON.stringify(db)); } catch(e) {}
+  const cfg = getCloudCfg();
+  if (!cfg || !cfg.binId || !cfg.apiKey) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try {
+      const r = await fetchWithTimeout(cloudPutUrl(cfg.binId), { method:'PUT', headers:cloudHeaders(cfg.apiKey), body:JSON.stringify(db) });
+      setBadge(r.ok ? 'cloud' : 'error');
+    } catch(e) { setBadge('error'); }
+  }, 600);
+}
+function setBadge(state) {
+  const b = document.getElementById('srv-badge'); if (!b) return;
+  const map = { cloud:['☁️ 已同步','var(--teal)'], error:['⚠️ 同步失败','var(--coral)'], local:['📱 本地','var(--text-3)'] };
+  const [txt,col] = map[state]||map.local;
+  b.textContent = txt; b.style.color = col;
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────
+function openSettings() {
+  const cfg = getCloudCfg() || {};
+  document.getElementById('cfg-binid').value = cfg.binId || '';
+  document.getElementById('cfg-apikey').value = cfg.apiKey || '';
+  document.getElementById('cfg-status').textContent = '';
+  document.getElementById('cfg-clear-btn').style.display = cfg.binId ? 'inline-block' : 'none';
+  const ck = getClaudeKey();
+  document.getElementById('cfg-claudekey').value = ck || '';
+  document.getElementById('cfg-claude-status').textContent = '';
+  document.getElementById('cfg-claude-clear-btn').style.display = ck ? 'inline-block' : 'none';
+  openOv('ov-settings');
+}
+async function testCloud() {
+  const binId = document.getElementById('cfg-binid').value.trim();
+  const apiKey = document.getElementById('cfg-apikey').value.trim();
+  const st = document.getElementById('cfg-status');
+  if (!binId || !apiKey) { st.textContent='⚠️ 请填写 Bin ID 和 Master Key'; st.style.color='var(--amber)'; return; }
+  st.textContent = '连接中…'; st.style.color = 'var(--text-3)';
+  try {
+    const r = await fetchWithTimeout(cloudUrl(binId), { headers: cloudHeaders(apiKey) });
+    if (r.ok) { st.textContent = '✅ 连接成功！'; st.style.color = 'var(--teal)'; }
+    else { const err = await r.json().catch(()=>({})); st.textContent = `❌ 失败 (${r.status})：${err.message||'检查信息'}`; st.style.color='var(--coral)'; }
+  } catch(e) { st.textContent = '❌ 网络错误：'+e.message; st.style.color='var(--coral)'; }
+}
+async function saveCloudConfig() {
+  const binId = document.getElementById('cfg-binid').value.trim();
+  const apiKey = document.getElementById('cfg-apikey').value.trim();
+  const st = document.getElementById('cfg-status');
+  if (!binId || !apiKey) { st.textContent='⚠️ 请填写 Bin ID 和 Master Key'; st.style.color='var(--amber)'; return; }
+  st.textContent = '保存并同步中…'; st.style.color = 'var(--text-3)';
+  try {
+    const r = await fetchWithTimeout(cloudUrl(binId), { headers: cloudHeaders(apiKey) });
+    if (r.ok) {
+      const json = await r.json();
+      const record = json.record || json;
+      if (record && record.logs && record.logs.length) {
+        const localHasData = db.logs.length > 0;
+        if (localHasData) {
+          const choice = confirm('云端已有数据。\n\n点"确定"→ 使用云端数据（丢弃本地）\n点"取消"→ 上传本地数据（覆盖云端）');
+          if (choice) { db = record; normDB(); }
+        } else { db = record; normDB(); }
+      }
+    }
+  } catch(e) {}
+  setCloudCfg({ binId, apiKey });
+  try {
+    const r = await fetchWithTimeout(cloudPutUrl(binId), { method:'PUT', headers:cloudHeaders(apiKey), body:JSON.stringify(db) });
+    if (r.ok) {
+      st.textContent = '✅ 已保存，云同步已启用！'; st.style.color='var(--teal)'; setBadge('cloud');
+      setTimeout(()=>{ closeOv('ov-settings'); renderToday(); }, 1200);
+    } else { st.textContent = '❌ 保存失败，请检查 Key'; st.style.color='var(--coral)'; }
+  } catch(e) { st.textContent = '❌ 网络错误'; st.style.color='var(--coral)'; }
+}
+function clearCloud() {
+  if (!confirm('清除云同步配置？数据仍保留在本地。')) return;
+  localStorage.removeItem('health_cloud'); closeOv('ov-settings'); setBadge('local');
+}
+function copySetupLink() {
+  const cfg = getCloudCfg();
+  if (!cfg || !cfg.binId || !cfg.apiKey) { alert('请先配置好云同步，再生成链接'); return; }
+  const payload = { binId: cfg.binId, apiKey: cfg.apiKey };
+  const ck = getClaudeKey(); if (ck) payload.claudeKey = ck;
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  const url = `${location.origin}${location.pathname}?setup=${encoded}`;
+  const finish = () => alert('配置链接已复制！在新设备/新网址打开即可自动连接。');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(finish).catch(()=>prompt('手动复制：', url));
+  else prompt('复制这个链接：', url);
+}
+function tryApplySetupParam() {
+  const params = new URLSearchParams(location.search);
+  const setup = params.get('setup');
+  if (!setup) return;
+  try {
+    const payload = JSON.parse(decodeURIComponent(escape(atob(setup))));
+    if (payload.binId && payload.apiKey) setCloudCfg({ binId:payload.binId, apiKey:payload.apiKey });
+    if (payload.claudeKey) setClaudeKey(payload.claudeKey);
+  } catch(e) {}
+  history.replaceState({}, '', location.pathname);
+}
+function getClaudeKey() { return localStorage.getItem('health_claude_key') || ''; }
+function setClaudeKey(k) { if (k) localStorage.setItem('health_claude_key', k); else localStorage.removeItem('health_claude_key'); }
+async function testClaudeKey() {
+  const key = document.getElementById('cfg-claudekey').value.trim();
+  const st = document.getElementById('cfg-claude-status');
+  if (!key) { st.textContent='⚠️ 请填写 API Key'; st.style.color='var(--amber)'; return; }
+  st.textContent = '连接中…'; st.style.color = 'var(--text-3)';
+  try {
+    const r = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers: {'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:8, messages:[{role:'user',content:'hi'}] })
+    }, 12000);
+    if (r.ok) { st.textContent = '✅ 连接成功！'; st.style.color = 'var(--teal)'; }
+    else { const err = await r.json().catch(()=>({})); st.textContent = `❌ 失败 (${r.status})：${err.error?.message||'检查Key'}`; st.style.color='var(--coral)'; }
+  } catch(e) { st.textContent = '❌ 网络错误：'+e.message; st.style.color='var(--coral)'; }
+}
+function saveClaudeKey() {
+  const key = document.getElementById('cfg-claudekey').value.trim();
+  setClaudeKey(key);
+  const st = document.getElementById('cfg-claude-status');
+  st.textContent = key ? '✅ 已保存' : '已清除'; st.style.color='var(--teal)';
+  document.getElementById('cfg-claude-clear-btn').style.display = key ? 'inline-block' : 'none';
+}
+function clearClaudeKey() {
+  if (!confirm('清除 AI 解析的 API Key？')) return;
+  setClaudeKey(''); document.getElementById('cfg-claudekey').value='';
+  document.getElementById('cfg-claude-clear-btn').style.display='none';
+  document.getElementById('cfg-claude-status').textContent='已清除';
+}
+
+// ── HELPERS ──────────────────────────────────────────────────
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function nowTime() { const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function openOv(id) { document.getElementById(id).classList.add('on'); }
+function closeOv(id) { document.getElementById(id).classList.remove('on'); }
+document.querySelectorAll('.ov').forEach(ov=>{
+  let downOnOverlay = false;
+  ov.addEventListener('pointerdown', e=>{ downOnOverlay = (e.target===ov); });
+  ov.addEventListener('click', e=>{ if (e.target===ov && downOnOverlay) closeOv(ov.id); downOnOverlay=false; });
+});
+function refreshSeg(segId, val) { document.querySelectorAll(`#${segId} .so`).forEach(o=>o.classList.toggle('sel', o.dataset.v===val)); }
+
+// ── NAV ──────────────────────────────────────────────────
+function hidePages() { document.querySelectorAll('.page').forEach(p=>p.classList.remove('on')); }
+function setActiveTab(id) {
+  document.querySelectorAll('.nt').forEach(t=>t.classList.remove('active'));
+  (id==='today'?document.getElementById('tab-today'):document.getElementById('tab-stats')).classList.add('active');
+}
+function gotoToday() { hidePages(); document.getElementById('pg-today').classList.add('on'); setActiveTab('today'); renderToday(); }
+function gotoStats() { hidePages(); document.getElementById('pg-stats').classList.add('on'); setActiveTab('stats'); renderStats(); }
+
+// ── TODAY RENDER ──────────────────────────────────────────────
+function renderToday() {
+  const d = new Date();
+  document.getElementById('hdr-date').textContent = d.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+  const t = todayStr();
+  const todayLogs = db.logs.filter(l=>l.date===t || (l.type==='sleep' && l.wakeDate===t));
+  document.getElementById('hdr-sub').textContent = todayLogs.length ? `今天已有 ${todayLogs.length} 条记录` : '点下面的卡片快速打卡';
+
+  const bowelN = todayLogs.filter(l=>l.type==='bowel').length;
+  const mealN = todayLogs.filter(l=>l.type==='meal').length;
+  const symN = todayLogs.filter(l=>l.type==='symptom').length;
+  const sleepLog = todayLogs.find(l=>l.type==='sleep');
+  document.getElementById('cnt-bowel').textContent = `今日 ${bowelN} 次`;
+  document.getElementById('cnt-meal').textContent = `今日 ${mealN} 次`;
+  document.getElementById('cnt-symptom').textContent = symN ? `今日 ${symN} 次` : '今日 0 次';
+  document.getElementById('cnt-sleep').textContent = sleepLog ? `${(sleepLog.durationMin/60).toFixed(1)} 小时` : '未记录';
+
+  const sorted = [...todayLogs].sort((a,b)=>{
+    const ta = a.type==='sleep' ? (a.wakeTime||'00:00') : (a.time||'00:00');
+    const tb = b.type==='sleep' ? (b.wakeTime||'00:00') : (b.time||'00:00');
+    return tb.localeCompare(ta);
+  });
+  document.getElementById('today-feed').innerHTML = sorted.length ? sorted.map(feedRowH).join('') : '<div class="empty-msg">今天还没有记录</div>';
+}
+function feedRowH(l) {
+  const meta = TYPE_META[l.type];
+  let title='', sub='', time='';
+  if (l.type==='bowel') { title='排便'; sub = l.bristolType ? `布里斯托 ${l.bristolType}型` + (l.notes?' · '+l.notes:'') : (l.notes||''); time=l.time; }
+  else if (l.type==='meal') { title = l.mealType||'吃饭'; sub = l.food||''; time=l.time; }
+  else if (l.type==='symptom') { title = l.symptom||'不舒服'; sub = sevDotsH(l.severity) + (l.notes?' '+escHtml(l.notes):''); time=l.time; }
+  else if (l.type==='sleep') { title = '睡眠 '+(l.durationMin?(l.durationMin/60).toFixed(1)+'小时':''); sub = `${l.bedTime}→${l.wakeTime} · ${l.quality||''}` + (l.notes?' · '+l.notes:''); time=l.wakeTime; }
+  return `<div class="feed-row">
+    <div class="feed-icon ${l.type}">${meta.icon}</div>
+    <div class="feed-info">
+      <div class="feed-title">${escHtml(title)}</div>
+      <div class="feed-sub">${l.type==='symptom'?sub:escHtml(sub)}</div>
+    </div>
+    <div class="feed-time">${time||''}</div>
+    <button class="feed-del" onclick="quickDelete('${l.id}')">×</button>
+  </div>`;
+}
+function sevDotsH(n) {
+  n = n||0;
+  let h = '<span class="sev-dots">';
+  for (let i=1;i<=5;i++) h += `<span class="sev-dot${i<=n?' on':''}"></span>`;
+  return h + '</span>';
+}
+function quickDelete(id) {
+  if (!confirm('删除这条记录？')) return;
+  db.logs = db.logs.filter(l=>l.id!==id);
+  save(); renderToday();
+}
+
+// ── BOWEL ──────────────────────────────────────────────────
+let editingBowelId = null;
+function openBowelForm(id) {
+  editingBowelId = id || null;
+  document.getElementById('bw-del').style.display = id ? 'inline-block' : 'none';
+  if (id) {
+    const l = db.logs.find(x=>x.id===id);
+    document.getElementById('bw-date').value = l.date; document.getElementById('bw-time').value = l.time;
+    document.getElementById('bw-type').value = l.bristolType || ''; document.getElementById('bw-notes').value = l.notes||'';
+  } else {
+    document.getElementById('bw-date').value = todayStr(); document.getElementById('bw-time').value = nowTime();
+    document.getElementById('bw-type').value = ''; document.getElementById('bw-notes').value = '';
+  }
+  openOv('ov-bowel');
+}
+function saveBowel() {
+  const data = { type:'bowel', date:document.getElementById('bw-date').value, time:document.getElementById('bw-time').value, bristolType:document.getElementById('bw-type').value, notes:document.getElementById('bw-notes').value.trim() };
+  if (editingBowelId) { const l = db.logs.find(x=>x.id===editingBowelId); Object.assign(l, data); }
+  else db.logs.push({ id:uid(), ...data });
+  save(); closeOv('ov-bowel'); renderToday();
+}
+function deleteLog(kind) {
+  const idMap = { bowel:editingBowelId, meal:editingMealId, symptom:editingSymptomId, sleep:editingSleepId };
+  const id = idMap[kind]; if (!id) return;
+  if (!confirm('删除？')) return;
+  db.logs = db.logs.filter(l=>l.id!==id);
+  save(); closeOv('ov-'+kind); renderToday();
+}
+
+// ── MEAL ──────────────────────────────────────────────────
+let editingMealId = null, selMealType = '早餐';
+function openMealForm(id) {
+  editingMealId = id || null;
+  document.getElementById('ml-del').style.display = id ? 'inline-block' : 'none';
+  if (id) {
+    const l = db.logs.find(x=>x.id===id);
+    document.getElementById('ml-date').value = l.date; document.getElementById('ml-time').value = l.time;
+    selMealType = l.mealType || '早餐'; document.getElementById('ml-food').value = l.food||'';
+  } else {
+    document.getElementById('ml-date').value = todayStr(); document.getElementById('ml-time').value = nowTime();
+    const h = new Date().getHours();
+    selMealType = h<10?'早餐':h<15?'午餐':h<21?'晚餐':'加餐';
+    document.getElementById('ml-food').value = '';
+  }
+  refreshSeg('seg-mealtype', selMealType);
+  openOv('ov-meal');
+}
+document.getElementById('seg-mealtype').addEventListener('click', e=>{ const o=e.target.closest('.so'); if(!o) return; selMealType=o.dataset.v; refreshSeg('seg-mealtype',selMealType); });
+function saveMeal() {
+  const data = { type:'meal', date:document.getElementById('ml-date').value, time:document.getElementById('ml-time').value, mealType:selMealType, food:document.getElementById('ml-food').value.trim() };
+  if (editingMealId) { const l = db.logs.find(x=>x.id===editingMealId); Object.assign(l, data); }
+  else db.logs.push({ id:uid(), ...data });
+  save(); closeOv('ov-meal'); renderToday();
+}
+
+// ── SYMPTOM ──────────────────────────────────────────────────
+let editingSymptomId = null, selSeverity = 3;
+function openSymptomForm(id) {
+  editingSymptomId = id || null;
+  document.getElementById('sy-del').style.display = id ? 'inline-block' : 'none';
+  if (id) {
+    const l = db.logs.find(x=>x.id===id);
+    document.getElementById('sy-date').value = l.date; document.getElementById('sy-time').value = l.time;
+    document.getElementById('sy-symptom').value = l.symptom||''; selSeverity = l.severity||3; document.getElementById('sy-notes').value = l.notes||'';
+  } else {
+    document.getElementById('sy-date').value = todayStr(); document.getElementById('sy-time').value = nowTime();
+    document.getElementById('sy-symptom').value = ''; selSeverity = 3; document.getElementById('sy-notes').value = '';
+  }
+  refreshSeg('seg-severity', String(selSeverity));
+  openOv('ov-symptom');
+}
+document.getElementById('seg-severity').addEventListener('click', e=>{ const o=e.target.closest('.so'); if(!o) return; selSeverity=parseInt(o.dataset.v); refreshSeg('seg-severity',String(selSeverity)); });
+function saveSymptom() {
+  const symptom = document.getElementById('sy-symptom').value.trim();
+  if (!symptom) { alert('请输入症状'); return; }
+  const data = { type:'symptom', date:document.getElementById('sy-date').value, time:document.getElementById('sy-time').value, symptom, severity:selSeverity, notes:document.getElementById('sy-notes').value.trim() };
+  if (editingSymptomId) { const l = db.logs.find(x=>x.id===editingSymptomId); Object.assign(l, data); }
+  else db.logs.push({ id:uid(), ...data });
+  save(); closeOv('ov-symptom'); renderToday();
+}
+
+// ── SLEEP ──────────────────────────────────────────────────
+let editingSleepId = null, selQuality = '好';
+function computeSleepDuration(bedDate, bedTime, wakeDate, wakeTime) {
+  const bed = new Date(`${bedDate}T${bedTime}:00`);
+  const wake = new Date(`${wakeDate}T${wakeTime}:00`);
+  let diff = (wake - bed) / 60000;
+  if (diff < 0) diff += 24*60;
+  return Math.round(diff);
+}
+function openSleepForm(id) {
+  editingSleepId = id || null;
+  document.getElementById('sl-del').style.display = id ? 'inline-block' : 'none';
+  if (id) {
+    const l = db.logs.find(x=>x.id===id);
+    document.getElementById('sl-beddate').value = l.bedDate; document.getElementById('sl-bedtime').value = l.bedTime;
+    document.getElementById('sl-wakedate').value = l.wakeDate; document.getElementById('sl-waketime').value = l.wakeTime;
+    selQuality = l.quality||'好'; document.getElementById('sl-notes').value = l.notes||'';
+  } else {
+    const y = new Date(); y.setDate(y.getDate()-1);
+    document.getElementById('sl-beddate').value = y.toISOString().slice(0,10); document.getElementById('sl-bedtime').value = '23:00';
+    document.getElementById('sl-wakedate').value = todayStr(); document.getElementById('sl-waketime').value = '07:00';
+    selQuality = '好'; document.getElementById('sl-notes').value = '';
+  }
+  refreshSeg('seg-quality', selQuality);
+  openOv('ov-sleep');
+}
+document.getElementById('seg-quality').addEventListener('click', e=>{ const o=e.target.closest('.so'); if(!o) return; selQuality=o.dataset.v; refreshSeg('seg-quality',selQuality); });
+function saveSleep() {
+  const bedDate=document.getElementById('sl-beddate').value, bedTime=document.getElementById('sl-bedtime').value;
+  const wakeDate=document.getElementById('sl-wakedate').value, wakeTime=document.getElementById('sl-waketime').value;
+  const durationMin = computeSleepDuration(bedDate,bedTime,wakeDate,wakeTime);
+  const data = { type:'sleep', date:wakeDate, bedDate, bedTime, wakeDate, wakeTime, durationMin, quality:selQuality, notes:document.getElementById('sl-notes').value.trim() };
+  if (editingSleepId) { const l = db.logs.find(x=>x.id===editingSleepId); Object.assign(l, data); }
+  else db.logs.push({ id:uid(), ...data });
+  save(); closeOv('ov-sleep'); renderToday();
+}
+
+// ── STATS ──────────────────────────────────────────────────
+let statPeriod = 'week';
+document.getElementById('seg-stat-period').addEventListener('click', e=>{ const o=e.target.closest('.so'); if(!o) return; statPeriod=o.dataset.v; refreshSeg('seg-stat-period',statPeriod); renderStats(); });
+function getStatsRange(period) {
+  const now = new Date(); now.setHours(0,0,0,0);
+  if (period==='month') {
+    const s = new Date(now.getFullYear(), now.getMonth(), 1);
+    const e = new Date(now.getFullYear(), now.getMonth()+1, 0);
+    return { start:s.toISOString().slice(0,10), end:e.toISOString().slice(0,10) };
+  }
+  const day = now.getDay(); const diffToMon = day===0?-6:1-day;
+  const mon = new Date(now); mon.setDate(now.getDate()+diffToMon);
+  const sun = new Date(mon); sun.setDate(mon.getDate()+6);
+  return { start: mon.toISOString().slice(0,10), end: sun.toISOString().slice(0,10) };
+}
+function dateRangeArray(start, end) {
+  const arr = []; let d = new Date(start+'T00:00:00'); const e = new Date(end+'T00:00:00');
+  while (d <= e) { arr.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+  return arr;
+}
+function renderBarChartByDay(data, dates, color, unit) {
+  const max = Math.max(...data, 1);
+  return dates.map((d,i)=>{
+    const v = data[i];
+    const pct = Math.max(v/max*100, v>0?4:0);
+    const label = d.slice(5).replace('-','/');
+    return `<div class="bar-row"><div class="bar-name">${label}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div><div class="bar-val">${v?v+unit:''}</div></div>`;
+  }).join('');
+}
+function renderStats() {
+  refreshSeg('seg-stat-period', statPeriod);
+  const { start, end } = getStatsRange(statPeriod);
+  const dates = dateRangeArray(start, end);
+  const inRange = l => { const d = l.type==='sleep' ? l.wakeDate : l.date; return d>=start && d<=end; };
+  const logs = db.logs.filter(inRange);
+
+  const bowelLogs = logs.filter(l=>l.type==='bowel');
+  const mealLogs = logs.filter(l=>l.type==='meal');
+  const symptomLogs = logs.filter(l=>l.type==='symptom').sort((a,b)=>b.date.localeCompare(a.date)||(b.time||'').localeCompare(a.time||''));
+  const sleepLogs = logs.filter(l=>l.type==='sleep');
+
+  const avgSleep = sleepLogs.length ? (sleepLogs.reduce((s,l)=>s+l.durationMin,0)/sleepLogs.length/60).toFixed(1) : '—';
+
+  document.getElementById('stat-summary').innerHTML = `
+    <div class="stat-card"><div class="stat-v">${bowelLogs.length}</div><div class="stat-l">排便次数</div></div>
+    <div class="stat-card"><div class="stat-v">${avgSleep}</div><div class="stat-l">平均睡眠(h)</div></div>
+    <div class="stat-card"><div class="stat-v">${symptomLogs.length}</div><div class="stat-l">不舒服次数</div></div>
+    <div class="stat-card"><div class="stat-v">${mealLogs.length}</div><div class="stat-l">进食次数</div></div>`;
+
+  const sleepByDay = dates.map(d => { const l = sleepLogs.find(x=>x.wakeDate===d); return l ? +(l.durationMin/60).toFixed(1) : 0; });
+  document.getElementById('chart-sleep').innerHTML = renderBarChartByDay(sleepByDay, dates, 'var(--blue)', 'h');
+
+  const bowelByDay = dates.map(d => bowelLogs.filter(l=>l.date===d).length);
+  document.getElementById('chart-bowel').innerHTML = renderBarChartByDay(bowelByDay, dates, 'var(--amber)', '次');
+
+  const mealByDay = dates.map(d => mealLogs.filter(l=>l.date===d).length);
+  document.getElementById('chart-meal').innerHTML = renderBarChartByDay(mealByDay, dates, 'var(--teal)', '次');
+
+  document.getElementById('list-symptom').innerHTML = symptomLogs.length ? symptomLogs.map(l=>`
+    <div class="feed-row">
+      <div class="feed-icon symptom">🤒</div>
+      <div class="feed-info"><div class="feed-title">${escHtml(l.symptom)}</div><div class="feed-sub">${sevDotsH(l.severity)} ${l.notes?escHtml(l.notes):''}</div></div>
+      <div class="feed-time">${l.date.slice(5)} ${l.time||''}</div>
+    </div>`).join('') : '<div class="empty-msg">这段时间没有不舒服记录</div>';
+}
+
+// ── SMART PARSING (local heuristic) ──────────────────────────────
+function detectHealthType(text) {
+  if (/起床|睡了|入睡|失眠|睡眠|睡觉|睡得/.test(text)) return 'sleep';
+  if (/拉屎|大便|排便|上厕所|拉粑粑|便便/.test(text)) return 'bowel';
+  if (/吃了|吃饭|早餐|午餐|晚餐|喝了|加餐|吃的/.test(text)) return 'meal';
+  if (/不舒服|头疼|头痛|肚子疼|疼|难受|恶心|发烧|咳嗽|拉肚子|腹泻|呕吐|不适/.test(text)) return 'symptom';
+  return null;
+}
+function extractTime(text) {
+  const m = text.match(/([上下]午|早上|晚上|中午)?\s*(\d{1,2})[点:：](\d{0,2})/);
+  if (!m) return null;
+  let h = parseInt(m[2]);
+  const prefix = m[1]||'';
+  if (/下午|晚上/.test(prefix) && h<12) h += 12;
+  else if (!prefix && h>0 && h<=7) h += 12;
+  const mm = m[3] ? m[3].padEnd(2,'0') : '00';
+  return String(h).padStart(2,'0')+':'+mm;
+}
+function smartParseHealth(text) {
+  if (!text || !text.trim()) return null;
+  const type = detectHealthType(text) || 'symptom';
+  const time = extractTime(text) || nowTime();
+  let date = todayStr();
+  if (/昨天|昨晚|昨日/.test(text)) { const d=new Date(); d.setDate(d.getDate()-1); date=d.toISOString().slice(0,10); }
+  const result = { type, date, time, notes:text.trim() };
+  if (type==='meal') {
+    const mt = text.match(/早餐|早饭/) ? '早餐' : text.match(/午餐|午饭/) ? '午餐' : text.match(/晚餐|晚饭/) ? '晚餐' : '';
+    result.mealType = mt;
+    result.food = text.trim();
+  }
+  if (type==='symptom') {
+    result.symptom = text.trim();
+    result.severity = /严重|很疼|受不了/.test(text) ? 4 : /轻微|有点/.test(text) ? 2 : 3;
+  }
+  if (type==='bowel') {
+    const b = text.match(/水状|腹泻/) ? 7 : text.match(/稀|软/) ? 6 : text.match(/硬|便秘/) ? 1 : 0;
+    result.bristolType = b || '';
+  }
+  if (type==='sleep') {
+    const times = [...text.matchAll(/(\d{1,2})[点:：](\d{0,2})/g)];
+    if (times.length>=2) {
+      let bh=parseInt(times[0][1]); if (bh>0&&bh<=7&&/早|凌晨/.test(text)===false) {}
+      result.bedTime = String(bh).padStart(2,'0')+':'+(times[0][2]?times[0][2].padEnd(2,'0'):'00');
+      let wh=parseInt(times[1][1]);
+      result.wakeTime = String(wh).padStart(2,'0')+':'+(times[1][2]?times[1][2].padEnd(2,'0'):'00');
+    }
+    result.quality = /失眠|没睡好|差|不好/.test(text) ? '差' : /还行|一般/.test(text) ? '一般' : '好';
+  }
+  return result;
+}
+
+// ── QUICK CAPTURE ──────────────────────────────────────────────
+let qcParseTimer=null, qcType='symptom';
+function openQuickCapture() {
+  document.getElementById('qc-text').value = '';
+  document.getElementById('qc-preview').style.display = 'none';
+  document.getElementById('qc-ai-row').style.display = getClaudeKey() ? 'block' : 'none';
+  document.getElementById('qc-ai-status').textContent = '';
+  qcBaseText = '';
+  initQcMic();
+  openOv('ov-quickcap');
+  setTimeout(()=>document.getElementById('qc-text').focus(), 200);
+}
+document.getElementById('qc-type-seg').addEventListener('click', e=>{ const o=e.target.closest('.so'); if(!o) return; qcType=o.dataset.v; refreshSeg('qc-type-seg',qcType); qcRenderExtraFields({}); });
+function qcRenderExtraFields(parsed) {
+  const el = document.getElementById('qc-extra-fields');
+  if (qcType==='meal') {
+    el.innerHTML = `<div class="fg" style="margin-bottom:0"><label class="flbl">餐次</label>
+      <div class="seg" id="qc-mealtype-seg">
+        <div class="so" data-v="早餐">早餐</div><div class="so" data-v="午餐">午餐</div><div class="so" data-v="晚餐">晚餐</div><div class="so" data-v="加餐">加餐</div>
+      </div></div>`;
+    refreshSeg('qc-mealtype-seg', parsed.mealType||'');
+    document.getElementById('qc-mealtype-seg').addEventListener('click', e=>{ const o=e.target.closest('.so'); if(!o) return; refreshSeg('qc-mealtype-seg',o.dataset.v); });
+  } else if (qcType==='symptom') {
+    el.innerHTML = `<div class="fg" style="margin-bottom:0"><label class="flbl">严重程度</label>
+      <div class="seg" id="qc-sev-seg">
+        <div class="so" data-v="1">1</div><div class="so" data-v="2">2</div><div class="so" data-v="3">3</div><div class="so" data-v="4">4</div><div class="so" data-v="5">5</div>
+      </div></div>`;
+    refreshSeg('qc-sev-seg', String(parsed.severity||3));
+    document.getElementById('qc-sev-seg').addEventListener('click', e=>{ const o=e.target.closest('.so'); if(!o) return; refreshSeg('qc-sev-seg',o.dataset.v); });
+  } else if (qcType==='sleep') {
+    el.innerHTML = `<div class="row2"><div class="fg" style="margin-bottom:0"><label class="flbl">入睡时间</label><input class="fi" id="qc-bedtime" type="time" value="${parsed.bedTime||''}"></div>
+      <div class="fg" style="margin-bottom:0"><label class="flbl">起床时间</label><input class="fi" id="qc-waketime" type="time" value="${parsed.wakeTime||document.getElementById('qc-time').value}"></div></div>`;
+  } else { el.innerHTML = ''; }
+}
+function qcAutoParse() {
+  clearTimeout(qcParseTimer);
+  qcParseTimer = setTimeout(()=>{
+    const text = document.getElementById('qc-text').value;
+    const parsed = smartParseHealth(text);
+    const prev = document.getElementById('qc-preview');
+    if (!parsed) { prev.style.display='none'; return; }
+    prev.style.display = 'block';
+    qcType = parsed.type;
+    refreshSeg('qc-type-seg', qcType);
+    document.getElementById('qc-date').value = parsed.date;
+    document.getElementById('qc-time').value = parsed.time;
+    qcRenderExtraFields(parsed);
+  }, 350);
+}
+function qcConfirm() {
+  const text = document.getElementById('qc-text').value.trim();
+  if (!text) { alert('请先输入或说点什么'); return; }
+  if (document.getElementById('qc-preview').style.display === 'none') qcAutoParse();
+  const date = document.getElementById('qc-date').value || todayStr();
+  const time = document.getElementById('qc-time').value || nowTime();
+  let data = { id:uid(), type:qcType, date, time, notes:text };
+  if (qcType==='meal') {
+    const sel = document.querySelector('#qc-mealtype-seg .so.sel');
+    data.mealType = sel ? sel.dataset.v : '';
+    data.food = text;
+  } else if (qcType==='symptom') {
+    const sel = document.querySelector('#qc-sev-seg .so.sel');
+    data.severity = sel ? parseInt(sel.dataset.v) : 3;
+    data.symptom = text;
+  } else if (qcType==='sleep') {
+    const bedTime = document.getElementById('qc-bedtime').value || '23:00';
+    const wakeTime = document.getElementById('qc-waketime').value || time;
+    let bedDate = date, wakeDate = date;
+    if (bedTime > wakeTime) { const d=new Date(date+'T00:00:00'); d.setDate(d.getDate()-1); bedDate = d.toISOString().slice(0,10); }
+    data.bedDate = bedDate; data.bedTime = bedTime; data.wakeDate = wakeDate; data.wakeTime = wakeTime;
+    data.durationMin = computeSleepDuration(bedDate, bedTime, wakeDate, wakeTime);
+    data.date = wakeDate;
+    data.quality = '一般';
+  }
+  db.logs.push(data);
+  save();
+  if (qcListening) qcToggleMic();
+  closeOv('ov-quickcap');
+  renderToday();
+}
+
+// ── MIC (Web Speech API, optional) ──────────────────────────────
+let qcRecognition=null, qcListening=false, qcBaseText='';
+function initQcMic() {
+  const btn = document.getElementById('qc-mic-btn');
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { btn.style.display='none'; return; }
+  btn.style.display='inline-flex'; btn.classList.remove('listening'); btn.textContent='🎤 按这里开始说话';
+  qcListening=false;
+  if (qcRecognition) { try { qcRecognition.onend=null; qcRecognition.stop(); } catch(e){} }
+  qcRecognition = new SR();
+  qcRecognition.lang='zh-CN'; qcRecognition.continuous=true; qcRecognition.interimResults=true;
+  qcRecognition.onresult = (e)=>{
+    let sessionTxt=''; for (let i=0;i<e.results.length;i++) sessionTxt+=e.results[i][0].transcript;
+    document.getElementById('qc-text').value = qcBaseText + sessionTxt;
+    qcAutoParse();
+  };
+  qcRecognition.onend = ()=>{ qcListening=false; btn.classList.remove('listening'); btn.textContent='🎤 按这里开始说话'; };
+}
+function qcToggleMic() {
+  if (!qcRecognition) return;
+  const btn = document.getElementById('qc-mic-btn');
+  if (qcListening) { qcRecognition.stop(); qcListening=false; btn.classList.remove('listening'); btn.textContent='🎤 按这里开始说话'; }
+  else {
+    qcBaseText = document.getElementById('qc-text').value;
+    try { qcRecognition.start(); qcListening=true; btn.classList.add('listening'); btn.textContent='⏹ 停止说话'; } catch(e){}
+  }
+}
+
+// ── AI PARSE (Claude API, opt-in) ──────────────────────────────
+const HEALTH_TOOL = {
+  name: 'extract_health_entry',
+  description: '从一段健康记录速记中提取结构化信息',
+  input_schema: {
+    type: 'object',
+    properties: {
+      entry_type: { type:'string', enum:['bowel','meal','symptom','sleep'], description:'记录类型：bowel=排便，meal=吃饭，symptom=身体不舒服，sleep=睡眠' },
+      time_hint: { type:'string', description:'这条记录对应的时间，HH:MM 24小时制，不确定用现在' },
+      date_hint: { type:'string', description:'日期 YYYY-MM-DD，根据今天/昨天等解析，不确定用今天' },
+      meal_type: { type:'string', description:'若entry_type=meal，餐次：早餐/午餐/晚餐/加餐，没提到空字符串' },
+      food: { type:'string', description:'若entry_type=meal，吃了什么，清理过的描述' },
+      symptom: { type:'string', description:'若entry_type=symptom，症状描述，清理过的' },
+      severity: { type:'integer', description:'若entry_type=symptom，严重程度1-5，不确定给3' },
+      bristol_type: { type:'integer', description:'若entry_type=bowel且提到性状，布里斯托分类1-7，没提到给0' },
+      bed_time: { type:'string', description:'若entry_type=sleep，入睡时间HH:MM，没提到空字符串' },
+      wake_time: { type:'string', description:'若entry_type=sleep，起床时间HH:MM，没提到空字符串' },
+      sleep_quality: { type:'string', description:'若entry_type=sleep，质量：好/一般/差' },
+      corrected_text: { type:'string', description:'解析口头更正后干净的备注文本' }
+    },
+    required: ['entry_type','time_hint','date_hint','meal_type','food','symptom','severity','bristol_type','bed_time','wake_time','sleep_quality','corrected_text']
+  }
+};
+async function callClaudeExtract(text) {
+  const key = getClaudeKey();
+  if (!key) throw new Error('未配置 API Key');
+  const body = {
+    model: 'claude-haiku-4-5-20251001', max_tokens: 1024,
+    system: `你在帮用户解析一个健康记录app里的语音/文字速记。今天日期是${todayStr()}，现在时间约${nowTime()}。用户会说排便、吃饭、身体不舒服、睡眠相关的内容，可能口语化、有口头更正、填充词。请提炼出干净准确的结构化信息，调用 extract_health_entry 工具返回。`,
+    messages: [{ role:'user', content:text }],
+    tools: [HEALTH_TOOL], tool_choice: { type:'tool', name:'extract_health_entry' }
+  };
+  const r = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers: {'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body: JSON.stringify(body)
+  }, 20000);
+  if (!r.ok) { const err = await r.json().catch(()=>({})); throw new Error(err.error?.message || ('API错误 '+r.status)); }
+  const json = await r.json();
+  const toolUse = (json.content||[]).find(c=>c.type==='tool_use');
+  if (!toolUse) throw new Error('未返回有效结果');
+  return toolUse.input;
+}
+async function qcAIParse() {
+  const text = document.getElementById('qc-text').value.trim();
+  const st = document.getElementById('qc-ai-status');
+  if (!text) { st.textContent='请先输入或说点什么'; st.style.color='var(--coral)'; return; }
+  st.textContent = '✨ AI 解析中…'; st.style.color = 'var(--purple)';
+  try {
+    const r = await callClaudeExtract(text);
+    document.getElementById('qc-text').value = r.corrected_text || text;
+    const prev = document.getElementById('qc-preview'); prev.style.display='block';
+    qcType = r.entry_type; refreshSeg('qc-type-seg', qcType);
+    document.getElementById('qc-date').value = r.date_hint || todayStr();
+    document.getElementById('qc-time').value = r.time_hint || nowTime();
+    qcRenderExtraFields({ mealType:r.meal_type, severity:r.severity, bedTime:r.bed_time, wakeTime:r.wake_time });
+    st.textContent = '✅ AI 解析完成'; st.style.color='var(--teal)';
+  } catch(e) { st.textContent = '❌ '+e.message; st.style.color='var(--coral)'; }
+}
+
+// ── INIT ──────────────────────────────────────────────────
+(async function init() {
+  await load();
+  renderToday();
+})();
+</script>
+</body>
+</html>
