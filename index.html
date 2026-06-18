@@ -597,7 +597,8 @@ function clearClaudeKey() {
 
 // ── HELPERS ──────────────────────────────────────────────────
 function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
-function todayStr() { return new Date().toISOString().slice(0,10); }
+function fmtDate(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function todayStr() { return fmtDate(new Date()); }
 function nowTime() { const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function openOv(id) { document.getElementById(id).classList.add('on'); }
@@ -813,7 +814,7 @@ function openSleepForm(id, prefillWakeDate) {
   } else {
     const wakeDate = prefillWakeDate || todayStr();
     const y = new Date(wakeDate+'T00:00:00'); y.setDate(y.getDate()-1);
-    document.getElementById('sl-beddate').value = y.toISOString().slice(0,10);
+    document.getElementById('sl-beddate').value = fmtDate(y);
     document.getElementById('sl-wakedate').value = wakeDate;
     selQuality = '好'; document.getElementById('sl-notes').value = '';
   }
@@ -908,16 +909,16 @@ function getStatsRange(period) {
   if (period==='month') {
     const s = new Date(now.getFullYear(), now.getMonth(), 1);
     const e = new Date(now.getFullYear(), now.getMonth()+1, 0);
-    return { start:s.toISOString().slice(0,10), end:e.toISOString().slice(0,10) };
+    return { start:fmtDate(s), end:fmtDate(e) };
   }
   const day = now.getDay(); const diffToMon = day===0?-6:1-day;
   const mon = new Date(now); mon.setDate(now.getDate()+diffToMon);
   const sun = new Date(mon); sun.setDate(mon.getDate()+6);
-  return { start: mon.toISOString().slice(0,10), end: sun.toISOString().slice(0,10) };
+  return { start: fmtDate(mon), end: fmtDate(sun) };
 }
 function dateRangeArray(start, end) {
   const arr = []; let d = new Date(start+'T00:00:00'); const e = new Date(end+'T00:00:00');
-  while (d <= e) { arr.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+  while (d <= e) { arr.push(fmtDate(d)); d.setDate(d.getDate()+1); }
   return arr;
 }
 function renderBarChartByDay(data, dates, color, unit) {
@@ -989,7 +990,7 @@ function smartParseHealth(text) {
   const type = detectHealthType(text) || 'symptom';
   const time = extractTime(text) || nowTime();
   let date = todayStr();
-  if (/昨天|昨晚|昨日/.test(text)) { const d=new Date(); d.setDate(d.getDate()-1); date=d.toISOString().slice(0,10); }
+  if (/昨天|昨晚|昨日/.test(text)) { const d=new Date(); d.setDate(d.getDate()-1); date=fmtDate(d); }
   const result = { type, date, time, notes:text.trim() };
   if (type==='meal') {
     const mt = text.match(/早餐|早饭/) ? '早餐' : text.match(/午餐|午饭/) ? '午餐' : text.match(/晚餐|晚饭/) ? '晚餐' : '';
@@ -1084,7 +1085,7 @@ function qcConfirm() {
     const bedTime = document.getElementById('qc-bedtime').value || '23:00';
     const wakeTime = document.getElementById('qc-waketime').value || time;
     let bedDate = date, wakeDate = date;
-    if (bedTime > wakeTime) { const d=new Date(date+'T00:00:00'); d.setDate(d.getDate()-1); bedDate = d.toISOString().slice(0,10); }
+    if (bedTime > wakeTime) { const d=new Date(date+'T00:00:00'); d.setDate(d.getDate()-1); bedDate = fmtDate(d); }
     data.bedDate = bedDate; data.bedTime = bedTime; data.wakeDate = wakeDate; data.wakeTime = wakeTime;
     data.durationMin = computeSleepDuration(bedDate, bedTime, wakeDate, wakeTime);
     data.date = wakeDate;
